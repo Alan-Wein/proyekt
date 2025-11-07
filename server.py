@@ -40,6 +40,8 @@ def handle_client(client,addr):
         if not data or data == "EXIT":
             print(addr.__str__()+" Disconnected")
             online.remove(addr)
+            client.send("EXIT".encode())
+            client.close()
             break
 
         if data == "CLEAR":
