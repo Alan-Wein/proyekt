@@ -30,6 +30,8 @@ def start():
         id = response.split("|")[1]
         print("Welcome back!")
 
+
+
     # Chat loop
     while True:
         text = input("> ")
@@ -56,6 +58,7 @@ def start():
         elif reply == "INVALID":
             print("Invalid command")
 
+# def listen()
 
 if __name__=="__main__":
     start()
