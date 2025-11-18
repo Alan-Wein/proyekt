@@ -13,7 +13,11 @@ CREATE TABLE IF NOT EXISTS users(
 )
 """)
 conn.commit()
-online = []
+online = {}
+def find_key_dict(dict, value):
+    for key, value_ in dict.items():
+        if value_ == value:
+            return key
 
 def create_user(email, name, password):
     c.execute("SELECT COUNT(*) FROM users")
@@ -39,7 +43,7 @@ def handle_client(client,addr):
         data = client.recv(2048).decode()
         if not data or data == "EXIT":
             print(addr.__str__()+" Disconnected")
-            online.remove(addr)
+            online.pop(find_key_dict(online, (client,addr)))
             client.send("EXIT".encode())
             client.close()
             break
@@ -62,10 +66,12 @@ def handle_client(client,addr):
             if id is None:
                 id = create_user(email, name, password)
                 client.send(f"NEW|{id}".encode())
+                online[id]=(client,addr)
             elif id == -1:
                 client.send("NO".encode())
             else:
                 client.send(f"OK|{id}".encode())
+                online[id] = (client, addr)
 
         elif parts[0] == "CMD":
             id = int(parts[1])
@@ -112,7 +118,6 @@ server.listen()
 print("Server running...")
 while True:
     client, addr = server.accept()
-    online.append(addr)
     print(addr.__str__()+" Connected")
     threading.Thread(target=handle_client, args=(client,addr), daemon=True).start()
 
