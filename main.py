@@ -32,7 +32,6 @@ def start():
 
 
 
-    # Chat loop
     while True:
         text = input("> ")
         if text == "exit":
@@ -58,7 +57,6 @@ def start():
         elif reply == "INVALID":
             print("Invalid command")
 
-# def listen()
 
 if __name__=="__main__":
     start()
