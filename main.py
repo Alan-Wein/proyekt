@@ -1,4 +1,5 @@
 import socket
+import threading
 
 def start():
     s = socket.socket()
@@ -30,18 +31,24 @@ def start():
         id = response.split("|")[1]
         print("Welcome back!")
 
+    threading.Thread(target=listen, args=(s,)).start()
+    talk(s,id)
 
-
+def talk(s,id):
     while True:
         text = input("> ")
         if text == "exit":
             s.send("EXIT".encode())
             print("Goodbye")
             break
-
         s.send(f"CMD|{id}|{text}".encode())
-        reply = s.recv(2048).decode()
 
+
+def listen(s):
+    while True:
+        reply = s.recv(2048).decode()
+        if reply == "EXIT":
+            break
         if reply.startswith("FRIENDS"):
             print("Friends list:", reply.split("|")[1])
 
@@ -56,7 +63,7 @@ def start():
 
         elif reply == "INVALID":
             print("Invalid command")
-
+        print("> ",end="")
 
 if __name__=="__main__":
     start()
