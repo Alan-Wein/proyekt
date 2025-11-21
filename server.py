@@ -19,6 +19,7 @@ def find_key_dict(dict, value):
         if value_ == value:
             return key
 
+
 def create_user(email, name, password):
     c.execute("SELECT COUNT(*) FROM users")
     id = c.fetchone()[0]
@@ -36,6 +37,7 @@ def verify_user(email, name, password):
     c.execute("SELECT id FROM users WHERE name=? AND password=?", (name, password))
     row = c.fetchone()
     return row[0] if row else -1  # -1 means wrong password
+
 
 def handle_client(client,addr):
 
@@ -60,7 +62,7 @@ def handle_client(client,addr):
         if parts[0] == "LOGIN":
             email, name, password = parts[1], parts[2], parts[3]
 
-            # check user
+
             id = verify_user(email, name, password)
 
             if id is None:
@@ -77,7 +79,7 @@ def handle_client(client,addr):
             id = int(parts[1])
             cmd = parts[2]
 
-            # handle chat commands
+
             if cmd == "list":
                 c.execute("SELECT friends FROM users WHERE id=?", (id,))
                 lst = json.loads(c.fetchone()[0])
@@ -91,23 +93,52 @@ def handle_client(client,addr):
 
             elif cmd.startswith("add "):
                 value = cmd[4:].strip()
+                if not value.isdigit():
+                    client.send("INVALID".encode())
+                    continue
+                friend=int(value)
                 c.execute("SELECT COUNT(*) FROM users")
                 max_id = c.fetchone()[0]
 
                 c.execute("SELECT friends FROM users WHERE id=?", (id,))
                 lst = json.loads(c.fetchone()[0])
-
-                if value.isdigit() and int(value) < max_id and int(value) not in lst and int(value) != id:
-                    lst.append(int(value))
-                    c.execute("UPDATE users SET friends=? WHERE id=?",
-                              (json.dumps(lst), id))
-                    conn.commit()
-                    client.send("ADDED".encode())
+                if friend < max_id and friend not in lst and friend != id: #valid command
+                    if friend in online:
+                        cF=online[friend][0]
+                        cF.send(f"FRIEND_R|{id}".encode())#friend request
+                        client.send("REQUESTED".encode())
+                    else:
+                        client.send("INVALID".encode())
                 else:
                     client.send("INVALID".encode())
+
             else:
                 client.send("INVALID".encode())
 
+        elif parts[0] == "FRIEND_A":
+            idU=int(parts[1])
+            idF=int(parts[2])
+            print(online)
+            print (idF)
+            cF=(online[idF])[0]
+            answer=parts[3]
+            if answer =="Y":
+                c.execute("SELECT friends FROM users WHERE id=?", (idU,))#add idF to idU
+                lst = json.loads(c.fetchone()[0])
+                lst.append(int(idF))
+                c.execute("UPDATE users SET friends=? WHERE id=?",
+                          (json.dumps(lst), idU))
+                c.execute("SELECT friends FROM users WHERE id=?", (idF,))#add idU to idF
+                lst = json.loads(c.fetchone()[0])
+                lst.append(int(idU))
+                c.execute("UPDATE users SET friends=? WHERE id=?",
+                          (json.dumps(lst), idF))
+                conn.commit()
+                client.send(f"ADDED|{idF}".encode())
+                cF.send(f"ADDED|{idU}".encode())
+
+            else:
+                cF.send(f"DENIED|{idU}".encode())
     client.close()
 
 
