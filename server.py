@@ -1,5 +1,6 @@
 import socket, threading, sqlite3, json
 
+
 conn = sqlite3.connect("users.db", check_same_thread=False)
 c = conn.cursor()
 
@@ -9,7 +10,8 @@ CREATE TABLE IF NOT EXISTS users(
     name TEXT,
     password TEXT,
     id INTEGER,
-    friends TEXT
+    friends TEXT,
+    offline TEXT
 )
 """)
 conn.commit()
@@ -25,7 +27,7 @@ def create_user(email, name, password):
     id = c.fetchone()[0]
     lst = []
 
-    c.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?)",(email, name, password, id, json.dumps(lst)))
+    c.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?)",(email, name, password, id, json.dumps(lst),""))
     conn.commit()
     return id
 
@@ -74,6 +76,17 @@ def handle_client(client,addr):
             else:
                 client.send(f"OK|{id}".encode())
                 online[id] = (client, addr)
+            if id in online:
+                print("back online")
+                c.execute("SELECT offline FROM users WHERE id = ?", (id,))
+                offline = c.fetchone()[0]
+                if offline!="":
+                    lines=offline.split("\n")
+                    for line in lines:
+                        print(line)
+                        client.send(line.encode())
+                    c.execute("UPDATE users SET offline=? WHERE id=?", ("",id))
+
 
         elif parts[0] == "CMD":
             id = int(parts[1])
@@ -106,9 +119,16 @@ def handle_client(client,addr):
                     if friend in online:
                         cF=online[friend][0]
                         cF.send(f"FRIEND_R|{id}".encode())#friend request
-                        client.send("REQUESTED".encode())
-                    else:
-                        client.send("INVALID".encode())
+
+                    else:           #offline
+                        # client.send("INVALID".encode())
+                        c.execute("SELECT offline FROM users WHERE id=?", (friend,))
+                        offline = c.fetchone()[0]
+                        print(f"offline: {offline}")
+                        c.execute("UPDATE users SET offline=? WHERE id=?",
+                                  (offline+f"FRIEND_R|{id}\n",friend))
+
+                    client.send("REQUESTED".encode())
                 else:
                     client.send("INVALID".encode())
 
@@ -120,7 +140,6 @@ def handle_client(client,addr):
             idF=int(parts[2])
             print(online)
             print (idF)
-            cF=(online[idF])[0]
             answer=parts[3]
             if answer =="Y":
                 c.execute("SELECT friends FROM users WHERE id=?", (idU,))#add idF to idU
@@ -134,10 +153,20 @@ def handle_client(client,addr):
                 c.execute("UPDATE users SET friends=? WHERE id=?",
                           (json.dumps(lst), idF))
                 conn.commit()
+                if idF not in online:
+                    c.execute("SELECT offline FROM users WHERE id=?", (idF,))
+                    offline = c.fetchone()[0]
+                    print(f"offline: {offline}")
+                    c.execute("UPDATE users SET offline=? WHERE id=?",
+                              (offline + f"ADDED|{idU}\n", idF))
+                else:
+                    cF = (online[idF])[0]
+                    cF.send(f"ADDED|{idU}".encode())
+
                 client.send(f"ADDED|{idF}".encode())
-                cF.send(f"ADDED|{idU}".encode())
 
             else:
+                cF = (online[idF])[0]
                 cF.send(f"DENIED|{idU}".encode())
     client.close()
 
