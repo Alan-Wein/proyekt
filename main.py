@@ -2,9 +2,9 @@ import socket
 import threading
 import time
 idF=-1
+s = socket.socket()
+s.connect(("127.0.0.1", 9999))
 def start():
-    s = socket.socket()
-    s.connect(("127.0.0.1", 9999))
 
     email = input("Enter email: ")
     name = input("Enter name: ")
@@ -38,7 +38,6 @@ def start():
 def talk(s,id):
     global idF
     while True:
-        # print(idF)
         time.sleep(0.1)
         if idF!=-1:
             answer = input(f"id - {idF} requested friendship, answer Y/N: ")
