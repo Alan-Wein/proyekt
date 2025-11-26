@@ -102,7 +102,7 @@ def handle_client(client,addr):
                 client.send(f"ONLINE|{online}".encode())
 
             elif cmd == "me":
-                client.send(f"ME|{addr}".encode())
+                client.send(f"ME|{id}:{addr}".encode())
 
             elif cmd.startswith("add "):
                 value = cmd[4:].strip()
@@ -119,19 +119,21 @@ def handle_client(client,addr):
                     if friend in online:
                         cF=online[friend][0]
                         cF.send(f"FRIEND_R|{id}".encode())#friend request
+                        client.send("REQUESTED".encode())
 
-                    else:           #offline
-                        # client.send("INVALID".encode())
+                    else:               #offline
                         c.execute("SELECT offline FROM users WHERE id=?", (friend,))
                         offline = c.fetchone()[0]
                         print(f"offline: {offline}")
-                        c.execute("UPDATE users SET offline=? WHERE id=?",
-                                  (offline+f"FRIEND_R|{id}\n",friend))
-
-                    client.send("REQUESTED".encode())
+                        if f"FRIEND_R|{id}" not in offline:
+                            print(f"offline: {offline}")
+                            c.execute("UPDATE users SET offline=? WHERE id=?",
+                                      (offline+f"FRIEND_R|{id}\n",friend))
+                            client.send("REQUESTED".encode())
+                        else:
+                            client.send("INVALID".encode())
                 else:
                     client.send("INVALID".encode())
-
             else:
                 client.send("INVALID".encode())
 
@@ -166,8 +168,16 @@ def handle_client(client,addr):
                 client.send(f"ADDED|{idF}".encode())
 
             else:
-                cF = (online[idF])[0]
-                cF.send(f"DENIED|{idU}".encode())
+                if idF not in online:
+                    c.execute("SELECT offline FROM users WHERE id=?", (idF,))
+                    offline = c.fetchone()[0]
+                    print(f"offline: {offline}")
+                    c.execute("UPDATE users SET offline=? WHERE id=?",
+                              (offline + f"DENIED|{idU}\n", idF))
+                else:
+                    cF = (online[idF])[0]
+                    cF.send(f"DENIED|{idU}".encode())
+
     client.close()
 
 
