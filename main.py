@@ -32,7 +32,7 @@ def start():
         id = response.split("|")[1]
         print("Welcome back!")
 
-    threading.Thread(target=listen, args=(s,)).start()
+    threading.Thread(target=listen, args=(s,), daemon=True).start()
     talk(s,id)
 
 def talk(s,id):
@@ -75,11 +75,9 @@ def listen(s):
 
         elif reply.startswith("ADDED"):
             print(f"Friend {reply.split("|")[1]} added!")
-            print("> ",end="")
 
         elif reply.startswith("DENIED"):
             print(f"Friend {reply.split("|")[1]} DENIED your request!")
-            print("> ",end="")
 
         elif reply == "REQUESTED":
             print("Friend request sent")
