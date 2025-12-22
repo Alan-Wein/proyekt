@@ -1,19 +1,21 @@
 import tkinter as tk
-import keyboard
+
+def type(textbox,text):
+    textbox.configure(state="normal")
+    textbox.insert(tk.END, text)
+    textbox.configure(state="disabled")
 
 def button_click(i,textbox):
-    textbox.configure(state="normal")
-    textbox.insert(tk.END,f"Friend {i}\n")
-    textbox.configure(state="disabled")
+    type(textbox,f"Friend {i}\n")
 
 def _on_mousewheel(event,canvas):
     canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")#how much scroll
-def type(entrybox, textbox):
+def enter_pressed(entrybox, textbox):
     if entrybox.get() != "":
-        textbox.configure(state="normal")
-        textbox.insert(tk.END, ">"+entrybox.get()+"\n")
-        textbox.configure(state="disabled")
+        type(textbox,"User> "+entrybox.get()+"\n")
         entrybox.delete(0, tk.END)
+
+
 def root(title,geometry,is_main:bool):
     root = tk.Tk()
     root.title = title
@@ -63,9 +65,12 @@ def scrollbar(root,row,column,lst,textbox):
     scrollable_frame.grid_columnconfigure(0, weight=1)
 
 def friends(scrollable_frame,canvas,friend_list,textbox):
-    for i in range(len(friend_list)):
-        btn = tk.Button(scrollable_frame, text=f"{friend_list[i]}", width=18,command=lambda j=friend_list[i]: button_click(j,textbox))
-        btn.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>",lambda event: _on_mousewheel(event,canvas)))
-        btn.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
-        btn.grid(column=0, padx=5, pady=2, sticky="ew")
-
+    if friend_list[0]!= "":
+        for i in range(len(friend_list)):
+            btn = tk.Button(scrollable_frame, text=f"{friend_list[i]}", width=18,command=lambda j=friend_list[i]: button_click(j,textbox))
+            btn.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>",lambda event: _on_mousewheel(event,canvas)))
+            btn.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
+            btn.grid(column=0, padx=5, pady=2, sticky="ew")
+    else:
+        label1=label(scrollable_frame,"No_Friends")
+        label1.grid(column=0, padx=5, pady=2, sticky="ew")
