@@ -40,6 +40,19 @@ def verify_user(email, name, password):
     row = c.fetchone()
     return row[0] if row else -1  # -1 means wrong password
 
+def Offline(id):
+    print("back online")
+    c.execute("SELECT offline FROM users WHERE id = ?", (id,))
+    offline = c.fetchone()[0]
+    print("offline:",offline)
+    if offline != "":
+        lines = offline.split("\n")
+        for line in lines:
+            if line != "":
+                print("sending offline..")
+                client.send(line.encode())
+    c.execute("UPDATE users SET offline=? WHERE id=?", ("", id))
+
 
 def handle_client(client,addr):
 
@@ -59,7 +72,12 @@ def handle_client(client,addr):
             continue
 
 
+
         parts = data.split("|")
+        if parts[0] == "OFFLINE":
+            id=parts[1]
+            Offline(id)
+            online[id]=(client,addr)
 
         if parts[0] == "LOGIN":
             email, name, password = parts[1], parts[2], parts[3]
@@ -70,22 +88,11 @@ def handle_client(client,addr):
             if id is None:
                 id = create_user(email, name, password)
                 client.send(f"NEW|{id}".encode())
-                online[id]=(client,addr)
+                #
             elif id == -1:
                 client.send("NO".encode())
             else:
                 client.send(f"OK|{id}".encode())
-                online[id] = (client, addr)
-            if id in online:
-                print("back online")
-                c.execute("SELECT offline FROM users WHERE id = ?", (id,))
-                offline = c.fetchone()[0]
-                if offline!="":
-                    lines=offline.split("\n")
-                    for line in lines:
-                        print(line)
-                        client.send(line.encode())
-                    c.execute("UPDATE users SET offline=? WHERE id=?", ("",id))
 
 
         elif parts[0] == "CMD":
@@ -95,8 +102,14 @@ def handle_client(client,addr):
 
             if cmd == "list":
                 c.execute("SELECT friends FROM users WHERE id=?", (id,))
-                lst = json.loads(c.fetchone()[0])
-                client.send(f"FRIENDS|{lst}".encode())
+                lst_id = json.loads(c.fetchone()[0])
+                lst_name=[]
+                for i in lst_id:
+                    c.execute("SELECT name FROM users WHERE id=?", (i,))
+                    lst_name.append(c.fetchone()[0])
+                print(json.dumps(lst_name))
+
+                client.send(f"FRIENDS|{json.dumps(lst_name)}".encode())
 
             elif cmd == "online":
                 client.send(f"ONLINE|{online}".encode())
@@ -107,6 +120,7 @@ def handle_client(client,addr):
             elif cmd.startswith("add "):
                 value = cmd[4:].strip()
                 if not value.isdigit():
+                    print("digit")
                     client.send("INVALID".encode())
                     continue
                 friend=int(value)
@@ -158,7 +172,6 @@ def handle_client(client,addr):
                 if idF not in online:
                     c.execute("SELECT offline FROM users WHERE id=?", (idF,))
                     offline = c.fetchone()[0]
-                    print(f"offline: {offline}")
                     c.execute("UPDATE users SET offline=? WHERE id=?",
                               (offline + f"ADDED|{idU}\n", idF))
                 else:
@@ -171,7 +184,6 @@ def handle_client(client,addr):
                 if idF not in online:
                     c.execute("SELECT offline FROM users WHERE id=?", (idF,))
                     offline = c.fetchone()[0]
-                    print(f"offline: {offline}")
                     c.execute("UPDATE users SET offline=? WHERE id=?",
                               (offline + f"DENIED|{idU}\n", idF))
                 else:
@@ -179,7 +191,6 @@ def handle_client(client,addr):
                     cF.send(f"DENIED|{idU}".encode())
 
     client.close()
-
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(("0.0.0.0", 9999))
