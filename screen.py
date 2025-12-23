@@ -1,4 +1,6 @@
 import tkinter as tk
+from tkinter import messagebox
+
 
 def type(textbox,text):
     textbox.configure(state="normal")
@@ -16,6 +18,12 @@ def enter_pressed(entrybox, textbox):
         entrybox.delete(0, tk.END)
 
 
+def popup(text):
+    return messagebox.showinfo("",text)
+def question(text):
+    return messagebox.askyesno("",text)
+
+
 def root(title,geometry,is_main:bool):
     root = tk.Tk()
     root.title = title
@@ -23,19 +31,25 @@ def root(title,geometry,is_main:bool):
     if is_main:
         root.grid_columnconfigure(0, weight=1)
         root.grid_columnconfigure(1, weight=0)
+    else:
+        root.resizable(False,False)
     root.update_idletasks()
     return root
 def textbox(root):
     return tk.Text(root, font="Ariel", state="disabled", width=root.winfo_screenwidth())
 
-def entrybox(root):
-    return tk.Entry(root,font="Ariel",width=root.winfo_screenwidth())
-
+def entrybox(root,is_password=False):
+    entry= tk.Entry(root,font="Ariel")
+    if is_password:
+        entry.configure(show="*")
+    return entry
+def packF(self,anchor=None,padx=None,pady=None,fill=None): #pack Fake
+    self.pack(anchor=anchor,padx=padx,pady=pady,fill=fill)
 def label(root,text):
     return tk.Label(root, font="Ariel", text=text)
 
-# def main_root(friend_list):
-    # keyboard.add_hotkey('enter',type,args=(entrybox,textbox))
+def button(root,text,comand=None):
+    return tk.Button(root, text=text, command=comand)
 def scrollbar(root,row,column,lst,textbox):
 
     right_area = tk.Frame(root)
@@ -65,7 +79,7 @@ def scrollbar(root,row,column,lst,textbox):
     scrollable_frame.grid_columnconfigure(0, weight=1)
 
 def friends(scrollable_frame,canvas,friend_list,textbox):
-    if friend_list[0]!= "":
+    if friend_list!= []:
         for i in range(len(friend_list)):
             btn = tk.Button(scrollable_frame, text=f"{friend_list[i]}", width=18,command=lambda j=friend_list[i]: button_click(j,textbox))
             btn.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>",lambda event: _on_mousewheel(event,canvas)))
