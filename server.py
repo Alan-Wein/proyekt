@@ -51,7 +51,9 @@ def Offline(id):
             if line != "":
                 print("sending offline..")
                 client.send(line.encode())
+    print("UPDATING OFFLINE..")
     c.execute("UPDATE users SET offline=? WHERE id=?", ("", id))
+    conn.commit()
 
 
 def handle_client(client,addr):
@@ -75,11 +77,11 @@ def handle_client(client,addr):
 
         parts = data.split("|")
         if parts[0] == "OFFLINE":
-            id=parts[1]
+            id=int(parts[1])
             Offline(id)
             online[id]=(client,addr)
 
-        if parts[0] == "LOGIN":
+        elif parts[0] == "LOGIN":
             email, name, password = parts[1], parts[2], parts[3]
 
 
@@ -130,7 +132,9 @@ def handle_client(client,addr):
                 c.execute("SELECT friends FROM users WHERE id=?", (id,))
                 lst = json.loads(c.fetchone()[0])
                 if friend < max_id and friend not in lst and friend != id: #valid command
-                    if friend in online:
+                    print(f"keys: {online.keys()}")
+                    if friend in online.keys():
+                        print("is online(add)")
                         cF=online[friend][0]
                         cF.send(f"FRIEND_R|{id}".encode())#friend request
                         client.send("REQUESTED".encode())
@@ -138,9 +142,9 @@ def handle_client(client,addr):
                     else:               #offline
                         c.execute("SELECT offline FROM users WHERE id=?", (friend,))
                         offline = c.fetchone()[0]
-                        print(f"offline: {offline}")
+                        print(f"offline(add1): {offline}")
                         if f"FRIEND_R|{id}" not in offline:
-                            print(f"offline: {offline}")
+                            print(f"offline(add2): {offline}")
                             c.execute("UPDATE users SET offline=? WHERE id=?",
                                       (offline+f"FRIEND_R|{id}\n",friend))
                             client.send("REQUESTED".encode())
@@ -176,8 +180,10 @@ def handle_client(client,addr):
                               (offline + f"ADDED|{idU}\n", idF))
                 else:
                     cF = (online[idF])[0]
+                    print(f"send added to {cF}")
                     cF.send(f"ADDED|{idU}".encode())
 
+                print("send added  to client ans")
                 client.send(f"ADDED|{idF}".encode())
 
             else:
@@ -201,4 +207,3 @@ while True:
     client, addr = server.accept()
     print(addr.__str__()+" Connected")
     threading.Thread(target=handle_client, args=(client,addr), daemon=True).start()
-
