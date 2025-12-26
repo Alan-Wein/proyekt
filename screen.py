@@ -78,6 +78,8 @@ def scrollbar(root,row,column,lst,textbox):
 
     scrollable_frame.grid_columnconfigure(0, weight=1)
 
+    return scrollbar
+
 def friends(scrollable_frame,canvas,friend_list,textbox):
     if friend_list!= []:
         for i in range(len(friend_list)):
