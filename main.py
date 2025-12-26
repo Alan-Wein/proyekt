@@ -1,19 +1,16 @@
-import json
-import socket
-import threading
-import time
-import screen
-import keyboard
+import json, socket, threading, screen, keyboard
 
 
-idF=-1
+
 s = socket.socket()
 s.connect(("127.0.0.1", 9999))
 
 def enter_pressed(entrybox,textbox,id):
     text=entrybox.get()
     screen.enter_pressed(entrybox,textbox)
-    if text.startswith("/"):
+    if text=="/exit":
+        s.send("EXIT".encode())
+    elif text.startswith("/"):
         text=text[1:]
         s.send(f"CMD|{id}|{text}".encode())
 
@@ -94,7 +91,7 @@ def start(id):
     s.send(f"CMD|{id}|list".encode())
     friends = json.loads(s.recv(2048).decode().split("|")[1])
     print(friends)
-    screen.scrollbar(root,4,1,friends,textbox)
+    scrollbar=screen.scrollbar(root,4,1,friends,textbox)
     entry=screen.entrybox(root)
     entry.configure(width=root.winfo_screenwidth())
     entry.grid(row=10, column=0, padx=10, pady=1, rowspan=1)
@@ -102,8 +99,7 @@ def start(id):
 
 
     s.send(f"OFFLINE|{id}".encode())
-    print("sent")
-    threading.Thread(target=listen, args=(s,textbox,id), daemon=True).start()
+    threading.Thread(target=listen, args=(s,root,textbox,id,scrollbar), daemon=True).start()
 
 
     root.mainloop()
@@ -115,10 +111,11 @@ def addFriend(id,entryADD):
 
 
 
-def listen(s,textbox,id):
+def listen(s,root,textbox,id,scrollbar):
     while True:
         reply = s.recv(2048).decode()
         if reply == "EXIT":
+            root.destroy()
             break
         if reply.startswith("FRIENDS"):
             text="Friends list:"+ reply.split("|")[1]
@@ -129,7 +126,7 @@ def listen(s,textbox,id):
             answer=screen.question(f"Do you want to be friends with {idf}?")
             if answer: text="Y"
             else: text="N"
-            s.send(f"FRIEND_A|{id}|{idf}|{answer}".encode())
+            s.send(f"FRIEND_A|{id}|{idf}|{text}".encode())
 
 
         elif reply.startswith("ME"):
@@ -140,15 +137,24 @@ def listen(s,textbox,id):
 
         elif reply.startswith("ADDED"):
             screen.popup(f"Friend {reply.split("|")[1]} added!")
+            s.send(f"CMD|{id}|list".encode())
+            friends = json.loads(s.recv(2048).decode().split("|")[1])
+            scrollbar = screen.scrollbar(root, 4, 1, friends, textbox)
             continue
 
         elif reply.startswith("DENIED"):
             screen.popup(f"Friend {reply.split("|")[1]} DENIED your request!")
             continue
+        elif reply == "REQUESTED":
+            screen.popup(f"Friend request sent!")
+            continue
 
         elif reply == "INVALID":
             screen.popup("INVALIIIIID")
             continue
+
+        else:
+            text="??????????????"
 
         screen.type(textbox,"Server> "+text+'\n')
 
