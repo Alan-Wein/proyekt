@@ -14,6 +14,13 @@ CREATE TABLE IF NOT EXISTS users(
     offline TEXT
 )
 """)
+print("crate chats")
+c.execute("""
+CREATE TABLE IF NOT EXISTS chats(
+    list TEXT,
+    text TEXT
+)
+""")
 conn.commit()
 online = {}
 def find_key_dict(dict, value):
@@ -41,17 +48,13 @@ def verify_user(email, name, password):
     return row[0] if row else -1  # -1 means wrong password
 
 def Offline(id):
-    print("back online")
     c.execute("SELECT offline FROM users WHERE id = ?", (id,))
     offline = c.fetchone()[0]
-    print("offline:",offline)
     if offline != "":
         lines = offline.split("\n")
         for line in lines:
             if line != "":
-                print("sending offline..")
                 client.send(line.encode())
-    print("UPDATING OFFLINE..")
     c.execute("UPDATE users SET offline=? WHERE id=?", ("", id))
     conn.commit()
 
@@ -62,7 +65,9 @@ def handle_client(client,addr):
         data = client.recv(2048).decode()
         if not data or data == "EXIT":
             print(addr.__str__()+" Disconnected")
-            online.pop(find_key_dict(online, (client,addr)))
+            key=find_key_dict(online, (client,addr))
+            if key!=None:
+                online.pop(key)
             client.send("EXIT".encode())
             client.close()
             break
@@ -70,7 +75,6 @@ def handle_client(client,addr):
         if data == "CLEAR":
             c.execute("DELETE FROM users")
             conn.commit()
-            print("Data cleared")
             continue
 
 
@@ -96,6 +100,10 @@ def handle_client(client,addr):
             else:
                 client.send(f"OK|{id}".encode())
 
+        elif parts[0] == "CHAT":
+            f_list = json.loads(parts[1])
+            client.send(f"CHAT|{f_list}".encode())
+
 
         elif parts[0] == "CMD":
             id = int(parts[1])
@@ -109,7 +117,6 @@ def handle_client(client,addr):
                 for i in lst_id:
                     c.execute("SELECT name FROM users WHERE id=?", (i,))
                     lst_name.append(c.fetchone()[0])
-                print(json.dumps(lst_name))
 
                 client.send(f"FRIENDS|{json.dumps(lst_name)}".encode())
 
@@ -122,7 +129,6 @@ def handle_client(client,addr):
             elif cmd.startswith("add "):
                 value = cmd[4:].strip()
                 if not value.isdigit():
-                    print("digit")
                     client.send("INVALID".encode())
                     continue
                 friend=int(value)
@@ -132,9 +138,7 @@ def handle_client(client,addr):
                 c.execute("SELECT friends FROM users WHERE id=?", (id,))
                 lst = json.loads(c.fetchone()[0])
                 if friend < max_id and friend not in lst and friend != id: #valid command
-                    print(f"keys: {online.keys()}")
                     if friend in online.keys():
-                        print("is online(add)")
                         cF=online[friend][0]
                         cF.send(f"FRIEND_R|{id}".encode())#friend request
                         client.send("REQUESTED".encode())
@@ -142,9 +146,7 @@ def handle_client(client,addr):
                     else:               #offline
                         c.execute("SELECT offline FROM users WHERE id=?", (friend,))
                         offline = c.fetchone()[0]
-                        print(f"offline(add1): {offline}")
                         if f"FRIEND_R|{id}" not in offline:
-                            print(f"offline(add2): {offline}")
                             c.execute("UPDATE users SET offline=? WHERE id=?",
                                       (offline+f"FRIEND_R|{id}\n",friend))
                             client.send("REQUESTED".encode())
@@ -158,8 +160,6 @@ def handle_client(client,addr):
         elif parts[0] == "FRIEND_A":
             idU=int(parts[1])
             idF=int(parts[2])
-            print(online)
-            print (idF)
             answer=parts[3]
             if answer =="Y":
                 c.execute("SELECT friends FROM users WHERE id=?", (idU,))#add idF to idU
@@ -180,11 +180,14 @@ def handle_client(client,addr):
                               (offline + f"ADDED|{idU}\n", idF))
                 else:
                     cF = (online[idF])[0]
-                    print(f"send added to {cF}")
                     cF.send(f"ADDED|{idU}".encode())
 
-                print("send added  to client ans")
                 client.send(f"ADDED|{idF}".encode())
+
+                c.execute("INSERT INTO chats VALUES (?, ?)",(json.dumps([idU,idF]), ""))
+                print("added a chat")
+
+                conn.commit()
 
             else:
                 if idF not in online:
