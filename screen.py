@@ -74,19 +74,23 @@ def scrollbar(root,row,column,lst,textbox):
     scrollable_frame.bind("<Configure>", update_scroll)
 
 
-    friends(scrollable_frame,canvas,lst,textbox)
+    f_btns=friends(scrollable_frame,canvas,lst,textbox)
 
     scrollable_frame.grid_columnconfigure(0, weight=1)
 
-    return scrollbar
+    return f_btns
 
-def friends(scrollable_frame,canvas,friend_list,textbox):
+def friends(scrollable_frame,canvas,friend_list):
+    f_btns=[]
     if friend_list!= []:
         for i in range(len(friend_list)):
-            btn = tk.Button(scrollable_frame, text=f"{friend_list[i]}", width=18,command=lambda j=friend_list[i]: button_click(j,textbox))
+            btn = tk.Button(scrollable_frame, text=f"{friend_list[i]}", width=18)
             btn.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>",lambda event: _on_mousewheel(event,canvas)))
             btn.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
             btn.grid(column=0, padx=5, pady=2, sticky="ew")
+            f_btns.append(btn)
     else:
         label1=label(scrollable_frame,"No_Friends")
         label1.grid(column=0, padx=5, pady=2, sticky="ew")
+
+    return f_btns
