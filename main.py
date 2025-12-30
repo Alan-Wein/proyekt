@@ -4,6 +4,21 @@ import json, socket, threading, screen, keyboard
 
 s = socket.socket()
 s.connect(("127.0.0.1", 9999))
+f_btns=[]
+
+def btn_create(list,textbox,id):
+    for b in list:
+        b.configure(command=lambda: button_click(b['text'],textbox,id),) #### WRONG gives name instead of id
+
+def button_click(b,textbox,id):
+    s.send(f"CHAT|{json.dumps([id,b])}".encode()) ### make a normal list - all id or all names
+    text = s.recv(1024).decode()
+    textbox.configure(text="text="+text)
+
+
+def closed(root):
+    s.send("EXIT".encode())
+    root.destroy()
 
 def enter_pressed(entrybox,textbox,id):
     text=entrybox.get()
@@ -73,6 +88,7 @@ def begin():
     button=screen.button(root, text="Log In",comand=lambda :login(root,entryE,entryU,entryP))
     button.pack(pady=20)
 
+    root.protocol("WM_DELETE_WINDOW", lambda: closed(root))
     root.mainloop()
 
 
@@ -90,8 +106,8 @@ def start(id):
     labelF.grid(row=3, column=1, padx=10, pady=5)
     s.send(f"CMD|{id}|list".encode())
     friends = json.loads(s.recv(2048).decode().split("|")[1])
-    print(friends)
-    scrollbar=screen.scrollbar(root,4,1,friends,textbox)
+    f_btns=screen.scrollbar(root,4,1,friends,textbox)
+    btn_create(f_btns, textbox,id)
     entry=screen.entrybox(root)
     entry.configure(width=root.winfo_screenwidth())
     entry.grid(row=10, column=0, padx=10, pady=1, rowspan=1)
@@ -99,19 +115,18 @@ def start(id):
 
 
     s.send(f"OFFLINE|{id}".encode())
-    threading.Thread(target=listen, args=(s,root,textbox,id,scrollbar), daemon=True).start()
+    threading.Thread(target=listen, args=(s,root,textbox,id), daemon=True).start()
 
-
+    root.protocol("WM_DELETE_WINDOW", lambda: closed(root))
     root.mainloop()
 def addFriend(id,entryADD):
-    print(entryADD.get())
     s.send(f"CMD|{id}|add {entryADD.get()}".encode())
     entryADD.delete(0,"end")
 
 
 
 
-def listen(s,root,textbox,id,scrollbar):
+def listen(s,root,textbox,id):
     while True:
         reply = s.recv(2048).decode()
         if reply == "EXIT":
@@ -139,7 +154,8 @@ def listen(s,root,textbox,id,scrollbar):
             screen.popup(f"Friend {reply.split("|")[1]} added!")
             s.send(f"CMD|{id}|list".encode())
             friends = json.loads(s.recv(2048).decode().split("|")[1])
-            scrollbar = screen.scrollbar(root, 4, 1, friends, textbox)
+            f_btns=screen.scrollbar(root, 4, 1, friends, textbox)
+            btn_create(f_btns, textbox,id)
             continue
 
         elif reply.startswith("DENIED"):
