@@ -1,19 +1,17 @@
 import json, socket, threading, screen, keyboard
 
 
-
+in_chat=None
 s = socket.socket()
 s.connect(("127.0.0.1", 9999))
 f_btns=[]
 
-def btn_create(list,textbox,id):
+def btn_create(list,id):
     for b in list:
-        b.configure(command=lambda: button_click(b['text'],textbox,id),) #### WRONG gives name instead of id
+        b.configure(command=lambda b=b: button_click(b.hidden,id),)
 
-def button_click(b,textbox,id):
-    s.send(f"CHAT|{json.dumps([id,b])}".encode()) ### make a normal list - all id or all names
-    text = s.recv(1024).decode()
-    textbox.configure(text="text="+text)
+def button_click(friend,id):
+    s.send(f"CHAT_START|{json.dumps([int(id),int(friend)])}".encode())
 
 
 def closed(root):
@@ -21,8 +19,11 @@ def closed(root):
     root.destroy()
 
 def enter_pressed(entrybox,textbox,id):
+
     text=entrybox.get()
     screen.enter_pressed(entrybox,textbox)
+    if in_chat != None:
+        s.send(f"CHAT|{id}|{in_chat}|{text}".encode())
     if text=="/exit":
         s.send("EXIT".encode())
     elif text.startswith("/"):
@@ -106,8 +107,8 @@ def start(id):
     labelF.grid(row=3, column=1, padx=10, pady=5)
     s.send(f"CMD|{id}|list".encode())
     friends = json.loads(s.recv(2048).decode().split("|")[1])
-    f_btns=screen.scrollbar(root,4,1,friends,textbox)
-    btn_create(f_btns, textbox,id)
+    f_btns=screen.scrollbar(root,4,1,friends)
+    btn_create(f_btns,id)
     entry=screen.entrybox(root)
     entry.configure(width=root.winfo_screenwidth())
     entry.grid(row=10, column=0, padx=10, pady=1, rowspan=1)
@@ -129,38 +130,49 @@ def addFriend(id,entryADD):
 def listen(s,root,textbox,id):
     while True:
         reply = s.recv(2048).decode()
+
+        parts = reply.split("|")
         if reply == "EXIT":
             root.destroy()
             break
-        if reply.startswith("FRIENDS"):
-            text="Friends list:"+ reply.split("|")[1]
+        if parts[0]=="FRIENDS":
+            text="Friends list:"+ parts[1]
 
-        elif reply.startswith("FRIEND_R"):
-            print("works?")
-            idf=reply.split("|")[1]
+        elif parts[0]=="FRIEND_R":
+            idf=parts[1]
             answer=screen.question(f"Do you want to be friends with {idf}?")
             if answer: text="Y"
             else: text="N"
             s.send(f"FRIEND_A|{id}|{idf}|{text}".encode())
 
 
-        elif reply.startswith("ME"):
-            text="You are:"+ reply.split("|")[1]
+        elif parts[0]=="ME":
+            text="You are:"+ parts[1]
 
-        elif reply.startswith("ONLINE"):
-            text="Online list:"+ reply.split("|")[1]
+        elif parts[0]=="ONLINE":
+            text="Online list:"+ parts[1]
 
-        elif reply.startswith("ADDED"):
-            screen.popup(f"Friend {reply.split("|")[1]} added!")
+        elif parts[0]=="ADDED":
+            screen.popup(f"Friend {parts[1]} added!")
             s.send(f"CMD|{id}|list".encode())
             friends = json.loads(s.recv(2048).decode().split("|")[1])
-            f_btns=screen.scrollbar(root, 4, 1, friends, textbox)
-            btn_create(f_btns, textbox,id)
+            f_btns=screen.scrollbar(root, 4, 1, friends)
+            btn_create(f_btns,id)
+            continue
+        elif parts[0]=="CHAT_START":
+            screen.textClear(textbox)
+            in_chat=parts[1]
+            text = parts[2]
+
+        elif parts[0]=="CHAT":
+            screen.textClear(textbox)
+            screen.type(textbox,f"{parts[1]}> {parts[2]} \n")
+
+
+        elif parts[0]=="DENIED":
+            screen.popup(f"Friend {parts[1]} DENIED your request!")
             continue
 
-        elif reply.startswith("DENIED"):
-            screen.popup(f"Friend {reply.split("|")[1]} DENIED your request!")
-            continue
         elif reply == "REQUESTED":
             screen.popup(f"Friend request sent!")
             continue
