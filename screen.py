@@ -6,6 +6,10 @@ def type(textbox,text):
     textbox.configure(state="normal")
     textbox.insert(tk.END, text)
     textbox.configure(state="disabled")
+def textClear(textbox):
+    textbox.configure(state="normal")
+    textbox.delete("1.0",tk.END)
+    textbox.configure(state="disabled")
 
 def button_click(i,textbox):
     type(textbox,f"Friend {i}\n")
@@ -50,7 +54,7 @@ def label(root,text):
 
 def button(root,text,comand=None):
     return tk.Button(root, text=text, command=comand)
-def scrollbar(root,row,column,lst,textbox):
+def scrollbar(root,row,column,lst):
 
     right_area = tk.Frame(root)
     right_area.grid(row=row, column=column, sticky="ns")
@@ -74,20 +78,21 @@ def scrollbar(root,row,column,lst,textbox):
     scrollable_frame.bind("<Configure>", update_scroll)
 
 
-    f_btns=friends(scrollable_frame,canvas,lst,textbox)
 
     scrollable_frame.grid_columnconfigure(0, weight=1)
 
-    return f_btns
+    return friends(scrollable_frame,canvas,lst)
 
 def friends(scrollable_frame,canvas,friend_list):
     f_btns=[]
     if friend_list!= []:
         for i in range(len(friend_list)):
-            btn = tk.Button(scrollable_frame, text=f"{friend_list[i]}", width=18)
+            btn = tk.Button(scrollable_frame, text=f"{friend_list[i][1]}", width=18)
             btn.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>",lambda event: _on_mousewheel(event,canvas)))
             btn.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
             btn.grid(column=0, padx=5, pady=2, sticky="ew")
+            var=friend_list[i][0]
+            btn.hidden = var
             f_btns.append(btn)
     else:
         label1=label(scrollable_frame,"No_Friends")
