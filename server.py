@@ -1,4 +1,5 @@
 import socket, threading, sqlite3, json
+from collections import Counter
 
 
 conn = sqlite3.connect("users.db", check_same_thread=False)
@@ -74,6 +75,7 @@ def handle_client(client,addr):
 
         if data == "CLEAR":
             c.execute("DELETE FROM users")
+            c.execute("DELETE FROM chats")
             conn.commit()
             continue
 
@@ -100,9 +102,37 @@ def handle_client(client,addr):
             else:
                 client.send(f"OK|{id}".encode())
 
-        elif parts[0] == "CHAT":
+        elif parts[0] == "CHAT_START":
             f_list = json.loads(parts[1])
-            client.send(f"CHAT|{f_list}".encode())
+            c.execute("SELECT list FROM chats")
+            list = c.fetchall()
+            text="HOW????"
+            real_list=f_list
+            for l in list:
+                l=l[0]
+
+                if Counter(f_list) == Counter(json.loads(l)):
+                    c.execute("SELECT text FROM chats WHERE list=?",(l,))
+                    text=l+":\n"+c.fetchone()[0]
+                    real_list=l
+                    break
+            client.send(f"CHAT_START|{real_list}|{text}".encode())
+
+        elif parts[0] == "CHAT":
+            id=parts[1]
+            list=json.loads(parts[2])
+            upload=parts[3]
+            c.execute("SELECT text FROM chats WHERE list=?", (list,))
+            text=c.fetchone()[0]+"\n"
+            print("updating..")
+            c.execute("UPDATE chats SET text=? WHERE list=?", (text+upload, list))
+            conn.commit()
+            for i in list:
+                if i!=id:
+                    if i in online:
+                        print(f"sending to {i}..")
+                        cF = online[i][0]
+                        cF.send(f"CHAT|{i}|{upload}".encode())
 
 
         elif parts[0] == "CMD":
@@ -116,7 +146,7 @@ def handle_client(client,addr):
                 lst_name=[]
                 for i in lst_id:
                     c.execute("SELECT name FROM users WHERE id=?", (i,))
-                    lst_name.append(c.fetchone()[0])
+                    lst_name.append((i,c.fetchone()[0]))##ID,NAME
 
                 client.send(f"FRIENDS|{json.dumps(lst_name)}".encode())
 
