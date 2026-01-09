@@ -18,11 +18,13 @@ def closed(root):
     s.send("EXIT".encode())
     root.destroy()
 
-def enter_pressed(entrybox,textbox,id):
+def enter_pressed(entrybox,textbox,id,name):
 
     text=entrybox.get()
-    screen.enter_pressed(entrybox,textbox)
-    if in_chat != None:
+
+    screen.enter_pressed(entrybox,textbox,name)
+
+    if in_chat != None and text!="":
         s.send(f"CHAT|{id}|{in_chat}|{text}".encode())
     if text=="/exit":
         s.send("EXIT".encode())
@@ -111,8 +113,12 @@ def start(id):
     btn_create(f_btns,id)
     entry=screen.entrybox(root)
     entry.configure(width=root.winfo_screenwidth())
+
     entry.grid(row=10, column=0, padx=10, pady=1, rowspan=1)
-    keyboard.add_hotkey('enter', lambda :enter_pressed(entry,textbox,id))
+    s.send(f"CMD|{id}|me".encode())
+    reply=s.recv(2048).decode().split("|")
+    name=reply[2]
+    keyboard.add_hotkey('enter', lambda :enter_pressed(entry,textbox,id,name))
 
 
     s.send(f"OFFLINE|{id}".encode())
@@ -128,6 +134,7 @@ def addFriend(id,entryADD):
 
 
 def listen(s,root,textbox,id):
+    global in_chat
     while True:
         reply = s.recv(2048).decode()
 
@@ -144,6 +151,7 @@ def listen(s,root,textbox,id):
             if answer: text="Y"
             else: text="N"
             s.send(f"FRIEND_A|{id}|{idf}|{text}".encode())
+            continue
 
 
         elif parts[0]=="ME":
@@ -163,11 +171,14 @@ def listen(s,root,textbox,id):
             screen.textClear(textbox)
             in_chat=parts[1]
             text = parts[2]
-
+            screen.type(textbox,text+'\n')
+            continue
         elif parts[0]=="CHAT":
-            screen.textClear(textbox)
-            screen.type(textbox,f"{parts[1]}> {parts[2]} \n")
-
+            friend=parts[1]
+            list=parts[2]
+            if in_chat==list:
+                s.send(f"CHAT_START|{json.dumps([int(id), int(friend)])}".encode())
+            continue
 
         elif parts[0]=="DENIED":
             screen.popup(f"Friend {parts[1]} DENIED your request!")
