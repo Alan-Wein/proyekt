@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox
 
-
+def down(textbox):
+    textbox.see(tk.END)
 def type(textbox,text):
     textbox.configure(state="normal")
     textbox.insert(tk.END, text)
