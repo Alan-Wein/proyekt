@@ -21,16 +21,18 @@ def closed(root):
 def enter_pressed(entrybox,textbox,id,name):
 
     text=entrybox.get()
-
+    is_down= textbox.yview()[1] == 1.0
     screen.enter_pressed(entrybox,textbox,name)
-
+    if is_down:
+        screen.down(textbox)
     if in_chat != None and text!="":
         s.send(f"CHAT|{id}|{in_chat}|{text}".encode())
-    if text=="/exit":
+    elif text=="/exit":
         s.send("EXIT".encode())
     elif text.startswith("/"):
         text=text[1:]
         s.send(f"CMD|{id}|{text}".encode())
+
 
 
 def login(root,entryE,entryU,entryP):
@@ -136,7 +138,9 @@ def addFriend(id,entryADD):
 def listen(s,root,textbox,id):
     global in_chat
     while True:
+        is_down = textbox.yview()[1] == 1.0
         reply = s.recv(2048).decode()
+
 
         parts = reply.split("|")
         if reply == "EXIT":
@@ -171,7 +175,10 @@ def listen(s,root,textbox,id):
             screen.textClear(textbox)
             in_chat=parts[1]
             text = parts[2]
+
             screen.type(textbox,text+'\n')
+            if is_down:
+                screen.down(textbox)
             continue
         elif parts[0]=="CHAT":
             friend=parts[1]
@@ -196,6 +203,8 @@ def listen(s,root,textbox,id):
             text="??????????????"
 
         screen.type(textbox,"Server> "+text+'\n')
+        if is_down:
+            screen.down(textbox)
 
 
 if __name__=="__main__":
