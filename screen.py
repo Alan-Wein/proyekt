@@ -16,9 +16,9 @@ def button_click(i,textbox):
 
 def _on_mousewheel(event,canvas):
     canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")#how much scroll
-def enter_pressed(entrybox, textbox):
+def enter_pressed(entrybox, textbox,name):
     if entrybox.get() != "":
-        type(textbox,"User> "+entrybox.get()+"\n")
+        type(textbox,f"{name}> {entrybox.get()}\n")
         entrybox.delete(0, tk.END)
 
 
