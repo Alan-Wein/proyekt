@@ -3,9 +3,9 @@ from collections import Counter
 
 
 conn = sqlite3.connect("users.db", check_same_thread=False)
-c = conn.cursor()
+main_c = conn.cursor()
 
-c.execute("""
+main_c.execute("""
 CREATE TABLE IF NOT EXISTS users(
     email TEXT,
     name TEXT,
@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS users(
     offline TEXT
 )
 """)
-print("crate chats")
-c.execute("""
+
+main_c.execute("""
 CREATE TABLE IF NOT EXISTS chats(
     list TEXT,
     text TEXT
@@ -31,36 +31,36 @@ def find_key_dict(dict, value):
 
 
 def create_user(email, name, password):
-    c.execute("SELECT COUNT(*) FROM users")
-    id = c.fetchone()[0]
+    main_c.execute("SELECT COUNT(*) FROM users")
+    id = main_c.fetchone()[0]
     lst = []
 
-    c.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?)",(email, name, password, id, json.dumps(lst),""))
+    main_c.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?)",(email, name, password, id, json.dumps(lst),""))
     conn.commit()
     return id
 
 def verify_user(email, name, password):
-    c.execute("SELECT id FROM users WHERE email = ?", (email,))
-    row = c.fetchone()
+    main_c.execute("SELECT id FROM users WHERE email = ?", (email,))
+    row = main_c.fetchone()
     if not row: return None  # no email => new user
 
-    c.execute("SELECT id FROM users WHERE name=? AND password=?", (name, password))
-    row = c.fetchone()
+    main_c.execute("SELECT id FROM users WHERE name=? AND password=?", (name, password))
+    row = main_c.fetchone()
     return row[0] if row else -1  # -1 means wrong password
 
 def Offline(id):
-    c.execute("SELECT offline FROM users WHERE id = ?", (id,))
-    offline = c.fetchone()[0]
+    main_c.execute("SELECT offline FROM users WHERE id = ?", (id,))
+    offline = main_c.fetchone()[0]
     if offline != "":
         lines = offline.split("\n")
         for line in lines:
             if line != "":
                 client.send(line.encode())
-    c.execute("UPDATE users SET offline=? WHERE id=?", ("", id))
+    main_c.execute("UPDATE users SET offline=? WHERE id=?", ("", id))
     conn.commit()
 
 
-def handle_client(client,addr):
+def handle_client(client,addr,c):
 
     while True:
         data = client.recv(2048).decode()
@@ -110,7 +110,6 @@ def handle_client(client,addr):
             real_list=f_list
             for l in list:
                 l=l[0]
-
                 if Counter(f_list) == Counter(json.loads(l)):
                     c.execute("SELECT text FROM chats WHERE list=?",(l,))
                     text=l+":\n"+c.fetchone()[0]
@@ -121,18 +120,18 @@ def handle_client(client,addr):
         elif parts[0] == "CHAT":
             id=parts[1]
             list=json.loads(parts[2])
-            upload=parts[3]
-            c.execute("SELECT text FROM chats WHERE list=?", (list,))
-            text=c.fetchone()[0]+"\n"
-            print("updating..")
-            c.execute("UPDATE chats SET text=? WHERE list=?", (text+upload, list))
+            c.execute("SELECT name FROM users WHERE id=?", (id,))
+            upload=c.fetchone()[0]+"> "+parts[3]
+            c.execute("SELECT text FROM chats WHERE list=?", (json.dumps(list),))
+            text=c.fetchone()[0]
+            text+="\n"
+            c.execute("UPDATE chats SET text=? WHERE list=?", (text+upload, json.dumps(list)))
             conn.commit()
             for i in list:
-                if i!=id:
+                if str(i)!=id:
                     if i in online:
-                        print(f"sending to {i}..")
                         cF = online[i][0]
-                        cF.send(f"CHAT|{i}|{upload}".encode())
+                        cF.send(f"CHAT|{id}|{list}".encode())
 
 
         elif parts[0] == "CMD":
@@ -154,7 +153,9 @@ def handle_client(client,addr):
                 client.send(f"ONLINE|{online}".encode())
 
             elif cmd == "me":
-                client.send(f"ME|{id}:{addr}".encode())
+                c.execute("SELECT name FROM users WHERE id=?", (id,))
+                name=c.fetchone()[0]
+                client.send(f"ME|{id}:{addr}|{name}".encode())
 
             elif cmd.startswith("add "):
                 value = cmd[4:].strip()
@@ -215,7 +216,6 @@ def handle_client(client,addr):
                 client.send(f"ADDED|{idF}".encode())
 
                 c.execute("INSERT INTO chats VALUES (?, ?)",(json.dumps([idU,idF]), ""))
-                print("added a chat")
 
                 conn.commit()
 
@@ -239,4 +239,4 @@ print("Server running...")
 while True:
     client, addr = server.accept()
     print(addr.__str__()+" Connected")
-    threading.Thread(target=handle_client, args=(client,addr), daemon=True).start()
+    threading.Thread(target=handle_client, args=(client,addr,conn.cursor()), daemon=True).start()
