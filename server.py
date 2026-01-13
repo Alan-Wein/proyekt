@@ -1,4 +1,4 @@
-import socket, threading, sqlite3, json
+import socket, threading, sqlite3, json,time
 from collections import Counter
 
 
@@ -53,10 +53,15 @@ def Offline(id):
     offline = main_c.fetchone()[0]
     if offline != "":
         lines = offline.split("\n")
-        for line in lines:
-            if line != "":
-                client.send(line.encode())
-    main_c.execute("UPDATE users SET offline=? WHERE id=?", ("", id))
+        line=lines[0]
+        lines = lines[1:]
+
+        if line != "":
+            print("line:"+line)
+            client.send(line.encode())
+            print("offline:"+offline)
+            print("new offline:"+offline[len(line)+1:])
+        main_c.execute("UPDATE users SET offline=? WHERE id=?", (offline[len(line)+1:], id))
     conn.commit()
 
 
@@ -86,6 +91,10 @@ def handle_client(client,addr,c):
             id=int(parts[1])
             Offline(id)
             online[id]=(client,addr)
+
+        if parts[0] == "DONE":
+            id=int(parts[1])
+            Offline(id)
 
         elif parts[0] == "LOGIN":
             email, name, password = parts[1], parts[2], parts[3]
@@ -195,12 +204,11 @@ def handle_client(client,addr,c):
             if answer =="Y":
                 c.execute("SELECT friends FROM users WHERE id=?", (idU,))#add idF to idU
                 lst = json.loads(c.fetchone()[0])
-                lst.append(int(idF))
-                c.execute("UPDATE users SET friends=? WHERE id=?",
-                          (json.dumps(lst), idU))
+                lst.insert(0, int(idF))
+                c.execute("UPDATE users SET friends=? WHERE id=?", (json.dumps(lst), idU))
                 c.execute("SELECT friends FROM users WHERE id=?", (idF,))#add idU to idF
                 lst = json.loads(c.fetchone()[0])
-                lst.append(int(idU))
+                lst.insert(0, int(idU))
                 c.execute("UPDATE users SET friends=? WHERE id=?",
                           (json.dumps(lst), idF))
                 conn.commit()
