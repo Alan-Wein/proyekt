@@ -1,5 +1,5 @@
 import json, socket, threading, screen, keyboard
-
+import time
 
 in_chat=None
 s = socket.socket()
@@ -32,6 +32,10 @@ def enter_pressed(entrybox,textbox,id,name):
     elif text.startswith("/"):
         text=text[1:]
         s.send(f"CMD|{id}|{text}".encode())
+
+
+def group():
+    print("grouping")
 
 
 
@@ -103,19 +107,25 @@ def start(id):
     textbox.grid(row=1, column=0, padx=10, pady=1, rowspan=5)
 
     entryADD=screen.entrybox(root)
-    entryADD.grid(row=2,column=1,padx=10, pady=1)
+    entryADD.grid(row=3,column=1,padx=10, pady=1)
     buttonADD=screen.button(root,"Add Friend(input id)",comand=lambda :addFriend(id,entryADD))
+    buttonADD.grid(row=2,column=1,padx=10, pady=1)
+
+    buttonGroup=screen.button(root,"Create Group",comand=lambda :group())
     buttonADD.grid(row=1,column=1,padx=10, pady=1)
 
+
+
     labelF=screen.label(root,"Friend List")
-    labelF.grid(row=3, column=1, padx=10, pady=5)
+    labelF.grid(row=4, column=1, padx=10, pady=5)
     s.send(f"CMD|{id}|list".encode())
     friends = json.loads(s.recv(2048).decode().split("|")[1])
-    f_btns=screen.scrollbar(root,4,1,friends)
+    f_btns=screen.scrollbar(root,5,1,friends)
     btn_create(f_btns,id)
+
+
     entry=screen.entrybox(root)
     entry.configure(width=root.winfo_screenwidth())
-
     entry.grid(row=10, column=0, padx=10, pady=1, rowspan=1)
     s.send(f"CMD|{id}|me".encode())
     reply=s.recv(2048).decode().split("|")
@@ -131,7 +141,6 @@ def start(id):
 def addFriend(id,entryADD):
     s.send(f"CMD|{id}|add {entryADD.get()}".encode())
     entryADD.delete(0,"end")
-
 
 
 
@@ -151,9 +160,11 @@ def listen(s,root,textbox,id):
 
         elif parts[0]=="FRIEND_R":
             idf=parts[1]
-            answer=screen.question(f"Do you want to be friends with {idf}?")
-            if answer: text="Y"
-            else: text="N"
+            answer = screen.question(f"Do you want to be friends with {idf}?")
+            if answer:
+                text = "Y"
+            else:
+                text = "N"
             s.send(f"FRIEND_A|{id}|{idf}|{text}".encode())
             continue
 
@@ -167,9 +178,12 @@ def listen(s,root,textbox,id):
         elif parts[0]=="ADDED":
             screen.popup(f"Friend {parts[1]} added!")
             s.send(f"CMD|{id}|list".encode())
-            friends = json.loads(s.recv(2048).decode().split("|")[1])
-            f_btns=screen.scrollbar(root, 4, 1, friends)
+            reply=s.recv(2048).decode()
+            print("friends: "+reply)
+            friends = json.loads(reply.split("|")[1])
+            f_btns=screen.scrollbar(root, 5, 1, friends)
             btn_create(f_btns,id)
+            s.send(f"DONE|{id}".encode())
             continue
         elif parts[0]=="CHAT_START":
             screen.textClear(textbox)
