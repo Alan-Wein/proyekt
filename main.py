@@ -1,10 +1,10 @@
 import json, socket, threading, screen, keyboard
-import time
 
 in_chat=None
 s = socket.socket()
 s.connect(("127.0.0.1", 9999))
 f_btns=[]
+friends=[]##friends[i]=(id,name)
 
 def btn_create(list,id):
     for b in list:
@@ -32,10 +32,34 @@ def enter_pressed(entrybox,textbox,id,name):
     elif text.startswith("/"):
         text=text[1:]
         s.send(f"CMD|{id}|{text}".encode())
+def pressed(checkboxes):
+    lst=[]
+    for cb in checkboxes:
+        if cb.var.get()==1:
+            print(cb.var.get())
+            lst.append(cb.hidden)
+    print(lst)
 
 
 def group():
-    print("grouping")
+    root=screen.root("Group Create","500x500",False)
+    BOXES_PER_ROW=3
+    checkboxes=[]
+    for i in range(len(friends)):
+        row = i // BOXES_PER_ROW
+        col = i % BOXES_PER_ROW
+        checkbox=screen.checkbox(root,friends[i][1],friends[i][0])
+        checkbox.grid(row=row+1, column=col, padx=10, pady=10)
+        checkboxes.append(checkbox)
+    buttonCreate = screen.button(root, "Create Group", lambda: pressed(checkboxes))
+    buttonCreate.grid(row=0, column=0, columnspan=BOXES_PER_ROW, pady=10, padx=10)
+    root.mainloop()
+
+
+
+
+
+
 
 
 
@@ -102,6 +126,7 @@ def begin():
 
 
 def start(id):
+    global friends
     root=screen.root("hi","1000x600",True)
     textbox=screen.textbox(root)
     textbox.grid(row=1, column=0, padx=10, pady=1, rowspan=5)
@@ -111,10 +136,6 @@ def start(id):
     buttonADD=screen.button(root,"Add Friend(input id)",comand=lambda :addFriend(id,entryADD))
     buttonADD.grid(row=2,column=1,padx=10, pady=1)
 
-    buttonGroup=screen.button(root,"Create Group",comand=lambda :group())
-    buttonADD.grid(row=1,column=1,padx=10, pady=1)
-
-
 
     labelF=screen.label(root,"Friend List")
     labelF.grid(row=4, column=1, padx=10, pady=5)
@@ -122,6 +143,9 @@ def start(id):
     friends = json.loads(s.recv(2048).decode().split("|")[1])
     f_btns=screen.scrollbar(root,5,1,friends)
     btn_create(f_btns,id)
+
+    buttonGroup = screen.button(root, "Create Group", comand=lambda: group())
+    buttonGroup.grid(row=1, column=1, padx=10, pady=1)
 
 
     entry=screen.entrybox(root)
@@ -145,6 +169,7 @@ def addFriend(id,entryADD):
 
 
 def listen(s,root,textbox,id):
+    global friends
     global in_chat
     while True:
         is_down = textbox.yview()[1] == 1.0
@@ -179,7 +204,6 @@ def listen(s,root,textbox,id):
             screen.popup(f"Friend {parts[1]} added!")
             s.send(f"CMD|{id}|list".encode())
             reply=s.recv(2048).decode()
-            print("friends: "+reply)
             friends = json.loads(reply.split("|")[1])
             f_btns=screen.scrollbar(root, 5, 1, friends)
             btn_create(f_btns,id)
