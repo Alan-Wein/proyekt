@@ -25,8 +25,16 @@ def enter_pressed(entrybox, textbox,name):
 
 def popup(text):
     return messagebox.showinfo("",text)
+
 def question(text):
     return messagebox.askyesno("",text)
+
+def checkbox(root,text,id):
+    var = tk.IntVar(master=root,value=0)
+    check=tk.Checkbutton(root,text=text,width=10,height=2,font=("Arial",12),variable=var,onvalue=1, offvalue=0)
+    check.hidden=id
+    check.var=var
+    return check
 
 
 def root(title,geometry,is_main:bool):
@@ -59,7 +67,6 @@ def scrollbar(root,row,column,lst):
 
     right_area = tk.Frame(root)
     right_area.grid(row=row, column=column, sticky="ns")
-    # Canvas + scrollbar
     canvas = tk.Canvas(right_area, width=160)
     canvas.grid(row=row, column=column-1, sticky="ns")
 
@@ -73,7 +80,7 @@ def scrollbar(root,row,column,lst):
     scrollable_frame.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
     canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
 
-    # Expand scroll region when size changes
+    # expand scroll region when size changes
     def update_scroll(event):
         canvas.configure(scrollregion=canvas.bbox("all"))
     scrollable_frame.bind("<Configure>", update_scroll)
