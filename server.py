@@ -54,13 +54,8 @@ def Offline(id):
     if offline != "":
         lines = offline.split("\n")
         line=lines[0]
-        lines = lines[1:]
-
         if line != "":
-            print("line:"+line)
             client.send(line.encode())
-            print("offline:"+offline)
-            print("new offline:"+offline[len(line)+1:])
         main_c.execute("UPDATE users SET offline=? WHERE id=?", (offline[len(line)+1:], id))
     conn.commit()
 
@@ -142,6 +137,29 @@ def handle_client(client,addr,c):
                         cF = online[i][0]
                         cF.send(f"CHAT|{id}|{list}".encode())
 
+        elif parts[0] == "GROUP":
+            lst=json.loads(parts[1])
+            name=parts[2]
+            c.execute("INSERT INTO chats VALUES (?, ?)", (json.dumps(lst), ""))
+
+            for user in lst:
+                print(user)
+                user=int(user)
+                c.execute("SELECT friends FROM users WHERE id=?", (user,))
+                friends = json.loads(c.fetchone()[0])
+                friends.append((name,lst))
+                c.execute("UPDATE users SET friends=? WHERE id=?", (json.dumps(friends), user))
+
+                if user not in online:
+                    c.execute("SELECT offline FROM users WHERE id=?", (user,))
+                    offline = c.fetchone()[0]
+                    c.execute("UPDATE users SET offline=? WHERE id=?",
+                              (offline + f"ADDED|{lst}\n", user))
+                else:
+                    cF = (online[user])[0]
+                    cF.send(f"ADDED|{lst}".encode())
+
+
 
         elif parts[0] == "CMD":
             id = int(parts[1])
@@ -153,8 +171,12 @@ def handle_client(client,addr,c):
                 lst_id = json.loads(c.fetchone()[0])
                 lst_name=[]
                 for i in lst_id:
-                    c.execute("SELECT name FROM users WHERE id=?", (i,))
-                    lst_name.append((i,c.fetchone()[0]))##ID,NAME
+                    if type(i)==type(1):
+                        c.execute("SELECT name FROM users WHERE id=?", (i,))
+                        name=c.fetchone()[0]
+                    else:
+                        name = i[0]
+                    lst_name.insert(0,(i,name))##ID,NAME
 
                 client.send(f"FRIENDS|{json.dumps(lst_name)}".encode())
 
