@@ -32,26 +32,37 @@ def enter_pressed(entrybox,textbox,id,name):
     elif text.startswith("/"):
         text=text[1:]
         s.send(f"CMD|{id}|{text}".encode())
-def pressed(checkboxes):
+def pressed(id,root,name,checkboxes):
+    if name=="":
+        root.attributes('-topmost', False)
+        screen.popup("Group name not entered")
+        root.attributes('-topmost', True)
+        return
     lst=[]
     for cb in checkboxes:
         if cb.var.get()==1:
             print(cb.var.get())
             lst.append(cb.hidden)
-    print(lst)
+    lst.append(int(id))
+    s.send(f"GROUP|{lst}|{name}".encode())
+    root.destroy()
 
-
-def group():
+def group(id):
     root=screen.root("Group Create","500x500",False)
+    root.attributes('-topmost', True)
     BOXES_PER_ROW=3
+
+    entrybox=screen.entrybox(root)
+    entrybox.grid(column=0,row=1,columnspan=BOXES_PER_ROW)
+
     checkboxes=[]
     for i in range(len(friends)):
         row = i // BOXES_PER_ROW
         col = i % BOXES_PER_ROW
         checkbox=screen.checkbox(root,friends[i][1],friends[i][0])
-        checkbox.grid(row=row+1, column=col, padx=10, pady=10)
+        checkbox.grid(row=row+2, column=col, padx=10, pady=10)
         checkboxes.append(checkbox)
-    buttonCreate = screen.button(root, "Create Group", lambda: pressed(checkboxes))
+    buttonCreate = screen.button(root, "Create Group", lambda: pressed(id,root,entrybox.get(),checkboxes))
     buttonCreate.grid(row=0, column=0, columnspan=BOXES_PER_ROW, pady=10, padx=10)
     root.mainloop()
 
@@ -144,7 +155,7 @@ def start(id):
     f_btns=screen.scrollbar(root,5,1,friends)
     btn_create(f_btns,id)
 
-    buttonGroup = screen.button(root, "Create Group", comand=lambda: group())
+    buttonGroup = screen.button(root, "Create Group", comand=lambda: group(id))
     buttonGroup.grid(row=1, column=1, padx=10, pady=1)
 
 
@@ -201,10 +212,9 @@ def listen(s,root,textbox,id):
             text="Online list:"+ parts[1]
 
         elif parts[0]=="ADDED":
-            screen.popup(f"Friend {parts[1]} added!")
+            screen.popup(f"{parts[1]} added!")
             s.send(f"CMD|{id}|list".encode())
-            reply=s.recv(2048).decode()
-            friends = json.loads(reply.split("|")[1])
+            friends = json.loads(s.recv(2048).decode().split("|")[1])
             f_btns=screen.scrollbar(root, 5, 1, friends)
             btn_create(f_btns,id)
             s.send(f"DONE|{id}".encode())
