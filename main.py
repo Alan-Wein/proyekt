@@ -6,12 +6,12 @@ s.connect(("127.0.0.1", 9999))
 f_btns=[]
 friends=[]##friends[i]=(id,name)
 
-def btn_create(list,id):
+def btn_create(list):
     for b in list:
-        b.configure(command=lambda b=b: button_click(b.hidden,id),)
+        b.configure(command=lambda b=b: button_click(b.hidden),)
 
-def button_click(friend,id):
-    s.send(f"CHAT_START|{json.dumps([int(id),int(friend)])}".encode())
+def button_click(friends):
+    s.send(f"CHAT_START|{json.dumps(friends)}".encode())
 
 
 def closed(root):
@@ -38,12 +38,12 @@ def pressed(id,root,name,checkboxes):
         screen.popup("Group name not entered")
         root.attributes('-topmost', True)
         return
-    lst=[]
+    lst=[int(id)]
     for cb in checkboxes:
         if cb.var.get()==1:
-            print(cb.var.get())
+            # print(cb.var.get())
             lst.append(cb.hidden)
-    lst.append(int(id))
+    print("list:",lst)
     s.send(f"GROUP|{lst}|{name}".encode())
     root.destroy()
 
@@ -59,7 +59,7 @@ def group(id):
     for i in range(len(friends)):
         row = i // BOXES_PER_ROW
         col = i % BOXES_PER_ROW
-        checkbox=screen.checkbox(root,friends[i][1],friends[i][0])
+        checkbox=screen.checkbox(root,friends[i][0],friends[i][1])
         checkbox.grid(row=row+2, column=col, padx=10, pady=10)
         checkboxes.append(checkbox)
     buttonCreate = screen.button(root, "Create Group", lambda: pressed(id,root,entrybox.get(),checkboxes))
@@ -153,7 +153,7 @@ def start(id):
     s.send(f"CMD|{id}|list".encode())
     friends = json.loads(s.recv(2048).decode().split("|")[1])
     f_btns=screen.scrollbar(root,5,1,friends)
-    btn_create(f_btns,id)
+    btn_create(f_btns)
 
     buttonGroup = screen.button(root, "Create Group", comand=lambda: group(id))
     buttonGroup.grid(row=1, column=1, padx=10, pady=1)
@@ -216,7 +216,7 @@ def listen(s,root,textbox,id):
             s.send(f"CMD|{id}|list".encode())
             friends = json.loads(s.recv(2048).decode().split("|")[1])
             f_btns=screen.scrollbar(root, 5, 1, friends)
-            btn_create(f_btns,id)
+            btn_create(f_btns)
             s.send(f"DONE|{id}".encode())
             continue
         elif parts[0]=="CHAT_START":
