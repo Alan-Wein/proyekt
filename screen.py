@@ -95,11 +95,11 @@ def friends(scrollable_frame,canvas,friend_list):
     f_btns=[]
     if friend_list!= []:
         for i in range(len(friend_list)):
-            btn = tk.Button(scrollable_frame, text=f"{friend_list[i][1]}", width=18)
+            btn = tk.Button(scrollable_frame, text=f"{friend_list[i][0]}", width=18)
             btn.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>",lambda event: _on_mousewheel(event,canvas)))
             btn.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
             btn.grid(column=0, padx=5, pady=2, sticky="ew")
-            var=friend_list[i][0]
+            var=friend_list[i][1]
             btn.hidden = var
             f_btns.append(btn)
     else:
