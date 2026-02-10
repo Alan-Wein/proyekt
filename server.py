@@ -108,11 +108,13 @@ def handle_client(client,addr,c):
 
         elif parts[0] == "CHAT_START":
             f_list = json.loads(parts[1])
+            # print("flist:",f_list)
             c.execute("SELECT list FROM chats")
             list = c.fetchall()
             text="HOW????"
             real_list=f_list
             for l in list:
+                # print("l:",l)
                 l=l[0]
                 if Counter(f_list) == Counter(json.loads(l)):
                     c.execute("SELECT text FROM chats WHERE list=?",(l,))
@@ -139,15 +141,20 @@ def handle_client(client,addr,c):
 
         elif parts[0] == "GROUP":
             lst=json.loads(parts[1])
+            id=lst[0]
+            lst=lst[1:]
             name=parts[2]
+            for i in lst:
+                i.remove(id)
+            print("group list:",lst)
             c.execute("INSERT INTO chats VALUES (?, ?)", (json.dumps(lst), ""))
 
             for user in lst:
                 print(user)
-                user=int(user)
+                user=int(user[0])
                 c.execute("SELECT friends FROM users WHERE id=?", (user,))
                 friends = json.loads(c.fetchone()[0])
-                friends.append((name,lst))
+                friends.append([name,lst])
                 c.execute("UPDATE users SET friends=? WHERE id=?", (json.dumps(friends), user))
 
                 if user not in online:
@@ -169,16 +176,16 @@ def handle_client(client,addr,c):
             if cmd == "list":
                 c.execute("SELECT friends FROM users WHERE id=?", (id,))
                 lst_id = json.loads(c.fetchone()[0])
-                lst_name=[]
-                for i in lst_id:
-                    if type(i)==type(1):
-                        c.execute("SELECT name FROM users WHERE id=?", (i,))
-                        name=c.fetchone()[0]
-                    else:
-                        name = i[0]
-                    lst_name.insert(0,(i,name))##ID,NAME
+                # lst_name=[]
+                # for i in lst_id:
+                #     if type(i)==type(1):
+                #         c.execute("SELECT name FROM users WHERE id=?", (i,))
+                #         name=c.fetchone()[0]
+                #     else:
+                #         name = i[0]
+                #     lst_name.insert(0,(i,name))##ID,NAME
 
-                client.send(f"FRIENDS|{json.dumps(lst_name)}".encode())
+                client.send(f"FRIENDS|{json.dumps(lst_id)}".encode())
 
             elif cmd == "online":
                 client.send(f"ONLINE|{online}".encode())
@@ -223,16 +230,19 @@ def handle_client(client,addr,c):
             idU=int(parts[1])
             idF=int(parts[2])
             answer=parts[3]
+            c.execute("SELECT name FROM users WHERE id=?", (idU,))
+            nameU=c.fetchone()[0]
+            c.execute("SELECT name FROM users WHERE id=?", (idF,))
+            nameF=c.fetchone()[0]
             if answer =="Y":
                 c.execute("SELECT friends FROM users WHERE id=?", (idU,))#add idF to idU
                 lst = json.loads(c.fetchone()[0])
-                lst.insert(0, int(idF))
+                lst.insert(0, [nameF,[idU,idF]])
                 c.execute("UPDATE users SET friends=? WHERE id=?", (json.dumps(lst), idU))
                 c.execute("SELECT friends FROM users WHERE id=?", (idF,))#add idU to idF
                 lst = json.loads(c.fetchone()[0])
-                lst.insert(0, int(idU))
-                c.execute("UPDATE users SET friends=? WHERE id=?",
-                          (json.dumps(lst), idF))
+                lst.insert(0, [nameU,[idU,idF]])
+                c.execute("UPDATE users SET friends=? WHERE id=?",(json.dumps(lst), idF))
                 conn.commit()
                 if idF not in online:
                     c.execute("SELECT offline FROM users WHERE id=?", (idF,))
