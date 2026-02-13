@@ -84,11 +84,7 @@ def scrollbar(root,row,column,lst):
     def update_scroll(event):
         canvas.configure(scrollregion=canvas.bbox("all"))
     scrollable_frame.bind("<Configure>", update_scroll)
-
-
-
     scrollable_frame.grid_columnconfigure(0, weight=1)
-
     return friends(scrollable_frame,canvas,lst)
 
 def friends(scrollable_frame,canvas,friend_list):
