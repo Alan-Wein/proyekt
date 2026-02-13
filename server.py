@@ -114,7 +114,6 @@ def handle_client(client,addr,c):
             text="HOW????"
             real_list=f_list
             for l in list:
-                # print("l:",l)
                 l=l[0]
                 if Counter(f_list) == Counter(json.loads(l)):
                     c.execute("SELECT text FROM chats WHERE list=?",(l,))
@@ -141,30 +140,24 @@ def handle_client(client,addr,c):
 
         elif parts[0] == "GROUP":
             lst=json.loads(parts[1])
-            id=lst[0]
-            lst=lst[1:]
             name=parts[2]
-            for i in lst:
-                i.remove(id)
-            print("group list:",lst)
             c.execute("INSERT INTO chats VALUES (?, ?)", (json.dumps(lst), ""))
-
             for user in lst:
-                print(user)
-                user=int(user[0])
+                fake_lst=lst.copy()
+                fake_lst.remove(user)
                 c.execute("SELECT friends FROM users WHERE id=?", (user,))
                 friends = json.loads(c.fetchone()[0])
-                friends.append([name,lst])
+                friends.append([name, fake_lst])
                 c.execute("UPDATE users SET friends=? WHERE id=?", (json.dumps(friends), user))
 
                 if user not in online:
                     c.execute("SELECT offline FROM users WHERE id=?", (user,))
                     offline = c.fetchone()[0]
                     c.execute("UPDATE users SET offline=? WHERE id=?",
-                              (offline + f"ADDED|{lst}\n", user))
+                              (offline + f"ADDED|{name}\n", user))
                 else:
                     cF = (online[user])[0]
-                    cF.send(f"ADDED|{lst}".encode())
+                    cF.send(f"ADDED|{name}".encode())
 
 
 
@@ -237,11 +230,11 @@ def handle_client(client,addr,c):
             if answer =="Y":
                 c.execute("SELECT friends FROM users WHERE id=?", (idU,))#add idF to idU
                 lst = json.loads(c.fetchone()[0])
-                lst.insert(0, [nameF,[idU,idF]])
+                lst.insert(0, [nameF,[idF]])
                 c.execute("UPDATE users SET friends=? WHERE id=?", (json.dumps(lst), idU))
                 c.execute("SELECT friends FROM users WHERE id=?", (idF,))#add idU to idF
                 lst = json.loads(c.fetchone()[0])
-                lst.insert(0, [nameU,[idU,idF]])
+                lst.insert(0, [nameU,[idU]])
                 c.execute("UPDATE users SET friends=? WHERE id=?",(json.dumps(lst), idF))
                 conn.commit()
                 if idF not in online:
