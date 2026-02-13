@@ -6,9 +6,11 @@ s.connect(("127.0.0.1", 9999))
 f_btns=[]
 friends=[]##friends[i]=(id,name)
 
-def btn_create(list):
+def btn_create(list,id):
     for b in list:
-        b.configure(command=lambda b=b: button_click(b.hidden),)
+        friends=b.hidden
+        friends.append(int(id))
+        b.configure(command=lambda friends=friends: button_click(friends),)
 
 def button_click(friends):
     s.send(f"CHAT_START|{json.dumps(friends)}".encode())
@@ -42,8 +44,7 @@ def pressed(id,root,name,checkboxes):
     for cb in checkboxes:
         if cb.var.get()==1:
             # print(cb.var.get())
-            lst.append(cb.hidden)
-    print("list:",lst)
+            lst.append(cb.hidden[0])
     s.send(f"GROUP|{lst}|{name}".encode())
     root.destroy()
 
@@ -65,8 +66,6 @@ def group(id):
     buttonCreate = screen.button(root, "Create Group", lambda: pressed(id,root,entrybox.get(),checkboxes))
     buttonCreate.grid(row=0, column=0, columnspan=BOXES_PER_ROW, pady=10, padx=10)
     root.mainloop()
-
-
 
 
 
@@ -153,7 +152,7 @@ def start(id):
     s.send(f"CMD|{id}|list".encode())
     friends = json.loads(s.recv(2048).decode().split("|")[1])
     f_btns=screen.scrollbar(root,5,1,friends)
-    btn_create(f_btns)
+    btn_create(f_btns,id)
 
     buttonGroup = screen.button(root, "Create Group", comand=lambda: group(id))
     buttonGroup.grid(row=1, column=1, padx=10, pady=1)
@@ -216,7 +215,7 @@ def listen(s,root,textbox,id):
             s.send(f"CMD|{id}|list".encode())
             friends = json.loads(s.recv(2048).decode().split("|")[1])
             f_btns=screen.scrollbar(root, 5, 1, friends)
-            btn_create(f_btns)
+            btn_create(f_btns,id)
             s.send(f"DONE|{id}".encode())
             continue
         elif parts[0]=="CHAT_START":
@@ -232,7 +231,7 @@ def listen(s,root,textbox,id):
             friend=parts[1]
             list=parts[2]
             if in_chat==list:
-                s.send(f"CHAT_START|{json.dumps([int(id), int(friend)])}".encode())
+                s.send(f"CHAT_START|{list}".encode())
             continue
 
         elif parts[0]=="DENIED":
