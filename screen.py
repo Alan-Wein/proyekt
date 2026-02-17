@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import messagebox
-
 def down(textbox):
     textbox.see(tk.END)
 def type(textbox,text):
@@ -36,6 +35,12 @@ def checkbox(root,text,id):
     check.var=var
     return check
 
+
+
+
+
+def frame(root,bd,relief):
+    return tk.Frame(root,bd=bd,relief=relief)
 
 def root(title,geometry,is_main:bool):
     root = tk.Tk()
