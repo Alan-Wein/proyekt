@@ -137,12 +137,40 @@ def begin():
 
 def start(id):
     global friends
+
     root=screen.root("hi","1000x600",True)
+##### TOOLBAR ######
+    toolbar = screen.frame(root, bd=1, relief="raised")
+    toolbar.grid(row=0, column=0, sticky="ew")
+
+    call=screen.button(toolbar, text="Start call",comand=lambda :begin())
+    call.configure(state="disabled")
+    call.grid(row=0,column=1,padx=5, pady=5)
+
+    btn_quit = screen.button(toolbar, text="Quit", comand=lambda :closed(root))
+    btn_quit.grid(row=0, column=0, padx=5, pady=5)
+##### LEFT SIDE #####
+
+
     textbox=screen.textbox(root)
     textbox.grid(row=1, column=0, padx=10, pady=1, rowspan=5)
 
+    entry=screen.entrybox(root)
+    entry.configure(width=root.winfo_screenwidth())
+    entry.grid(row=10, column=0, padx=10, pady=1, rowspan=1)
+    s.send(f"CMD|{id}|me".encode())
+    reply=s.recv(2048).decode().split("|")
+    name=reply[2]
+    keyboard.add_hotkey('enter', lambda :enter_pressed(entry,textbox,id,name))
+
+
+######  RIGHT SIDE #####
+    buttonGroup = screen.button(root, "Create Group", comand=lambda: group(id))
+    buttonGroup.grid(row=1, column=1, padx=10, pady=1)
+
     entryADD=screen.entrybox(root)
     entryADD.grid(row=3,column=1,padx=10, pady=1)
+
     buttonADD=screen.button(root,"Add Friend(input id)",comand=lambda :addFriend(id,entryADD))
     buttonADD.grid(row=2,column=1,padx=10, pady=1)
 
@@ -154,21 +182,12 @@ def start(id):
     f_btns=screen.scrollbar(root,5,1,friends)
     btn_create(f_btns,id)
 
-    buttonGroup = screen.button(root, "Create Group", comand=lambda: group(id))
-    buttonGroup.grid(row=1, column=1, padx=10, pady=1)
 
 
-    entry=screen.entrybox(root)
-    entry.configure(width=root.winfo_screenwidth())
-    entry.grid(row=10, column=0, padx=10, pady=1, rowspan=1)
-    s.send(f"CMD|{id}|me".encode())
-    reply=s.recv(2048).decode().split("|")
-    name=reply[2]
-    keyboard.add_hotkey('enter', lambda :enter_pressed(entry,textbox,id,name))
 
 
     s.send(f"OFFLINE|{id}".encode())
-    threading.Thread(target=listen, args=(s,root,textbox,id), daemon=True).start()
+    threading.Thread(target=listen, args=(s,root,textbox,id,call), daemon=True).start()
 
     root.protocol("WM_DELETE_WINDOW", lambda: closed(root))
     root.mainloop()
@@ -178,7 +197,7 @@ def addFriend(id,entryADD):
 
 
 
-def listen(s,root,textbox,id):
+def listen(s,root,textbox,id,call):
     global friends
     global in_chat
     while True:
@@ -226,6 +245,9 @@ def listen(s,root,textbox,id):
             screen.type(textbox,text+'\n')
             if is_down:
                 screen.down(textbox)
+
+            call.configure(state="normal",command=lambda :calling(id,in_chat))
+
             continue
         elif parts[0]=="CHAT":
             friend=parts[1]
@@ -252,6 +274,16 @@ def listen(s,root,textbox,id):
         screen.type(textbox,"Server> "+text+'\n')
         if is_down:
             screen.down(textbox)
+
+def calling(id,lst):
+    root=screen.root("call","500x500",False)
+    textbox=screen.textbox(root)
+    textbox.pack(side="top",fill="x")
+    screen.type(textbox,f"id: {id} \n")
+    screen.type(textbox,f"lst: {lst} \n")
+    # s.send(f"CALL|{id}|call".encode())
+
+#        reply = s.recv(2048).decode()
 
 
 if __name__=="__main__":
