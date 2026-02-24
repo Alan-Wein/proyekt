@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS chats(
 """)
 conn.commit()
 online = {}
+rooms = {}
+
 def find_key_dict(dict, value):
     for key, value_ in dict.items():
         if value_ == value:
@@ -108,7 +110,6 @@ def handle_client(client,addr,c):
 
         elif parts[0] == "CHAT_START":
             f_list = json.loads(parts[1])
-            # print("flist:",f_list)
             c.execute("SELECT list FROM chats")
             list = c.fetchall()
             text="HOW????"
@@ -169,14 +170,7 @@ def handle_client(client,addr,c):
             if cmd == "list":
                 c.execute("SELECT friends FROM users WHERE id=?", (id,))
                 lst_id = json.loads(c.fetchone()[0])
-                # lst_name=[]
-                # for i in lst_id:
-                #     if type(i)==type(1):
-                #         c.execute("SELECT name FROM users WHERE id=?", (i,))
-                #         name=c.fetchone()[0]
-                #     else:
-                #         name = i[0]
-                #     lst_name.insert(0,(i,name))##ID,NAME
+
 
                 client.send(f"FRIENDS|{json.dumps(lst_id)}".encode())
 
@@ -262,7 +256,44 @@ def handle_client(client,addr,c):
                     cF = (online[idF])[0]
                     cF.send(f"DENIED|{idU}".encode())
 
+
+        elif parts[0] == "CALL":
+            lst=json.loads(parts[1])
+            id=int(parts[2])
+            for i in rooms:  ###get out of voice chat if in one
+                print(f"room: {i}, type: {type(i)}")
+                print(f"rooms[i]: {rooms[i]}")
+                if id in rooms[i]:
+                    rooms[i].remove(id)
+                    break
+            ### insert client into new room
+
+            if json.dumps(lst) not in rooms: ##new room-client calling
+                rooms[json.dumps(lst)]=[id]
+
+                for i in lst:
+                    if i in online and i != id:
+                        x = lst.copy().remove(i)
+                        online[i][0].send(f"CALLING|{x}".encode())
+
+            else:## room existed - client entering
+                rooms[json.dumps(lst)].append(id)
+
+            sendall(rooms[json.dumps(lst)],f"{id} entered the voice chat")
+
+
+
+
+
     client.close()
+
+
+
+def sendall(lst,text):
+    for i in lst:
+        print(f"sending to {i}...")
+        online[int(i)][0].send(f"VC_enter|{text}".encode())
+
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(("0.0.0.0", 9999))
