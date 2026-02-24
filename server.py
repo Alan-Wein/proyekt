@@ -279,7 +279,7 @@ def handle_client(client,addr,c):
             else:## room existed - client entering
                 rooms[json.dumps(lst)].append(id)
 
-            sendall(rooms[json.dumps(lst)],f"{id} entered the voice chat")
+            sendall(rooms[json.dumps(lst)],f"VC_enter|{id} entered the voice chat")
 
 
 
@@ -292,7 +292,7 @@ def handle_client(client,addr,c):
 def sendall(lst,text):
     for i in lst:
         print(f"sending to {i}...")
-        online[int(i)][0].send(f"VC_enter|{text}".encode())
+        online[int(i)][0].send(text.encode())
 
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
