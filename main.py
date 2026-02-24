@@ -237,6 +237,7 @@ def listen(s,root,textbox,id,call):
             btn_create(f_btns,id)
             s.send(f"DONE|{id}".encode())
             continue
+
         elif parts[0]=="CHAT_START":
             screen.textClear(textbox)
             in_chat=parts[1]
@@ -255,6 +256,20 @@ def listen(s,root,textbox,id,call):
             if in_chat==list:
                 s.send(f"CHAT_START|{list}".encode())
             continue
+
+        elif parts[0] == "CALLING":
+            lst=parts[1]
+            answer = screen.question(f"Do you want to enter a call with {lst}?")
+            if answer:
+                calling(id,lst)
+            continue
+
+        if parts[0] == "VC_enter":
+            text=parts[1]
+            screen.type(textbox,f"{text} \n")
+            continue
+
+
 
         elif parts[0]=="DENIED":
             screen.popup(f"Friend {parts[1]} DENIED your request!")
@@ -281,9 +296,20 @@ def calling(id,lst):
     textbox.pack(side="top",fill="x")
     screen.type(textbox,f"id: {id} \n")
     screen.type(textbox,f"lst: {lst} \n")
-    # s.send(f"CALL|{id}|call".encode())
+    print(lst)
+    s.send(f"CALL|{lst}|{id}".encode())
+    root.mainloop()
 
-#        reply = s.recv(2048).decode()
+
+
+    # while True:
+    #     reply = s.recv(2048).decode()
+    #     parts = reply.split("|")
+    #
+    #     if parts[0]=="VC_enter":
+    #         text=parts[1]
+    #         screen.type(textbox,f"{text} \n")
+    #         print("here")
 
 
 if __name__=="__main__":
