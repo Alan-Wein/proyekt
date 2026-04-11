@@ -1,11 +1,11 @@
-import json, socket, threading, screen, keyboard
+import json, socket, threading, GUI, keyboard
 
 in_chat=None
 s = socket.socket()
 s.connect(("127.0.0.1", 9999))
 f_btns=[]
 friends=[]##friends[i]=(id,name)
-
+gui=GUI.GUI()
 def btn_create(list,id):
     for b in list:
         friends=b.hidden
@@ -24,9 +24,9 @@ def enter_pressed(entrybox,textbox,id,name):
 
     text=entrybox.get()
     is_down= textbox.yview()[1] == 1.0
-    screen.enter_pressed(entrybox,textbox,name)
+    gui.enter_pressed(entrybox,textbox,name)
     if is_down:
-        screen.down(textbox)
+        gui.down(textbox)
     if in_chat != None and text!="":
         s.send(f"CHAT|{id}|{in_chat}|{text}".encode())
     elif text=="/exit":
@@ -37,7 +37,7 @@ def enter_pressed(entrybox,textbox,id,name):
 def pressed(id,root,name,checkboxes):
     if name=="":
         root.attributes('-topmost', False)
-        screen.popup("Group name not entered")
+        gui.popup("Group name not entered")
         root.attributes('-topmost', True)
         return
     lst=[int(id)]
@@ -49,21 +49,21 @@ def pressed(id,root,name,checkboxes):
     root.destroy()
 
 def group(id):
-    root=screen.root("Group Create","500x500",False)
+    root=gui.root("Group Create","500x500",False)
     root.attributes('-topmost', True)
     BOXES_PER_ROW=3
 
-    entrybox=screen.entrybox(root)
+    entrybox=gui.entrybox(root)
     entrybox.grid(column=0,row=1,columnspan=BOXES_PER_ROW)
 
     checkboxes=[]
     for i in range(len(friends)):
         row = i // BOXES_PER_ROW
         col = i % BOXES_PER_ROW
-        checkbox=screen.checkbox(root,friends[i][0],friends[i][1])
+        checkbox=gui.checkbox(root,friends[i][0],friends[i][1])
         checkbox.grid(row=row+2, column=col, padx=10, pady=10)
         checkboxes.append(checkbox)
-    buttonCreate = screen.button(root, "Create Group", lambda: pressed(id,root,entrybox.get(),checkboxes))
+    buttonCreate = gui.button(root, "Create Group", lambda: pressed(id,root,entrybox.get(),checkboxes))
     buttonCreate.grid(row=0, column=0, columnspan=BOXES_PER_ROW, pady=10, padx=10)
     root.mainloop()
 
@@ -95,7 +95,7 @@ def login(root,entryE,entryU,entryP):
     response = s.recv(2048).decode()
 
     if response == "NO":
-        screen.popup("Name or password incorrect. Try again")
+        gui.popup("Name or password incorrect. Try again")
         entryE.delete(0,"end")
         entryU.delete(0,"end")
         entryP.delete(0,"end")
@@ -113,22 +113,22 @@ def login(root,entryE,entryU,entryP):
 
 
 def begin():
-    root = screen.root("Login","400x320",False)
+    root = gui.root("Login","400x320",False)
 
-    labelE=screen.label(root, text="Email:").pack(anchor="w", padx=20, pady=(15, 0))
-    entryE=screen.entrybox(root)
+    labelE=gui.label(root, text="Email:").pack(anchor="w", padx=20, pady=(15, 0))
+    entryE=gui.entrybox(root)
     entryE.pack(fill="x", padx=20)
 
 
-    labelU=screen.label(root, text="Username:").pack(anchor="w", padx=20, pady=(10, 0))
-    entryU=screen.entrybox(root)
+    labelU=gui.label(root, text="Username:").pack(anchor="w", padx=20, pady=(10, 0))
+    entryU=gui.entrybox(root)
     entryU.pack(fill="x", padx=20)
 
-    labelP=screen.label(root, text="Password:").pack(anchor="w", padx=20, pady=(10, 0))
-    entryP=screen.entrybox(root,True)
+    labelP=gui.label(root, text="Password:").pack(anchor="w", padx=20, pady=(10, 0))
+    entryP=gui.entrybox(root,True)
     entryP.pack(fill="x", padx=20)
 
-    button=screen.button(root, text="Log In",comand=lambda :login(root,entryE,entryU,entryP))
+    button=gui.button(root, text="Log In",comand=lambda :login(root,entryE,entryU,entryP))
     button.pack(pady=20)
 
     root.protocol("WM_DELETE_WINDOW", lambda: closed(root))
@@ -138,24 +138,24 @@ def begin():
 def start(id):
     global friends
 
-    root=screen.root("hi","1000x600",True)
+    root=gui.root("hi","1000x600",True)
 ##### TOOLBAR ######
-    toolbar = screen.frame(root, bd=1, relief="raised")
+    toolbar = gui.frame(root, bd=1, relief="raised")
     toolbar.grid(row=0, column=0, sticky="ew")
 
-    call=screen.button(toolbar, text="Start call",comand=lambda :begin())
+    call=gui.button(toolbar, text="Start call",comand=lambda :begin())
     call.configure(state="disabled")
     call.grid(row=0,column=1,padx=5, pady=5)
 
-    btn_quit = screen.button(toolbar, text="Quit", comand=lambda :closed(root))
+    btn_quit = gui.button(toolbar, text="Quit", comand=lambda :closed(root))
     btn_quit.grid(row=0, column=0, padx=5, pady=5)
 ##### LEFT SIDE #####
 
 
-    textbox=screen.textbox(root)
+    textbox=gui.textbox(root)
     textbox.grid(row=1, column=0, padx=10, pady=1, rowspan=5)
 
-    entry=screen.entrybox(root)
+    entry=gui.entrybox(root)
     entry.configure(width=root.winfo_screenwidth())
     entry.grid(row=10, column=0, padx=10, pady=1, rowspan=1)
     s.send(f"CMD|{id}|me".encode())
@@ -165,21 +165,21 @@ def start(id):
 
 
 ######  RIGHT SIDE #####
-    buttonGroup = screen.button(root, "Create Group", comand=lambda: group(id))
+    buttonGroup = gui.button(root, "Create Group", comand=lambda: group(id))
     buttonGroup.grid(row=1, column=1, padx=10, pady=1)
 
-    entryADD=screen.entrybox(root)
+    entryADD=gui.entrybox(root)
     entryADD.grid(row=3,column=1,padx=10, pady=1)
 
-    buttonADD=screen.button(root,"Add Friend(input id)",comand=lambda :addFriend(id,entryADD))
+    buttonADD=gui.button(root,"Add Friend(input id)",comand=lambda :addFriend(id,entryADD))
     buttonADD.grid(row=2,column=1,padx=10, pady=1)
 
 
-    labelF=screen.label(root,"Friend List")
+    labelF=gui.label(root,"Friend List")
     labelF.grid(row=4, column=1, padx=10, pady=5)
     s.send(f"CMD|{id}|list".encode())
     friends = json.loads(s.recv(2048).decode().split("|")[1])
-    f_btns=screen.scrollbar(root,5,1,friends)
+    f_btns=gui.scrollbar(root,5,1,friends)
     btn_create(f_btns,id)
 
 
@@ -214,7 +214,7 @@ def listen(s,root,textbox,id,call):
 
         elif parts[0]=="FRIEND_R":
             idf=parts[1]
-            answer = screen.question(f"Do you want to be friends with {idf}?")
+            answer = gui.question(f"Do you want to be friends with {idf}?")
             if answer:
                 text = "Y"
             else:
@@ -230,22 +230,22 @@ def listen(s,root,textbox,id,call):
             text="Online list:"+ parts[1]
 
         elif parts[0]=="ADDED":
-            screen.popup(f"{parts[1]} added!")
+            gui.popup(f"{parts[1]} added!")
             s.send(f"CMD|{id}|list".encode())
             friends = json.loads(s.recv(2048).decode().split("|")[1])
-            f_btns=screen.scrollbar(root, 5, 1, friends)
+            f_btns=gui.scrollbar(root, 5, 1, friends)
             btn_create(f_btns,id)
             s.send(f"DONE|{id}".encode())
             continue
 
         elif parts[0]=="CHAT_START":
-            screen.textClear(textbox)
+            gui.textClear(textbox)
             in_chat=parts[1]
             text = parts[2]
 
-            screen.type(textbox,text+'\n')
+            gui.type(textbox,text+'\n')
             if is_down:
-                screen.down(textbox)
+                gui.down(textbox)
 
             call.configure(state="normal",command=lambda :calling(id,in_chat))
 
@@ -259,43 +259,43 @@ def listen(s,root,textbox,id,call):
 
         elif parts[0] == "CALLING":
             lst=parts[1]
-            answer = screen.question(f"Do you want to enter a call with {lst}?")
+            answer = gui.question(f"Do you want to enter a call with {lst}?")
             if answer:
                 calling(id,lst)
             continue
 
         if parts[0] == "VC_enter":
             text=parts[1]
-            screen.type(textbox,f"{text} \n")
+            gui.type(textbox,f"{text} \n")
             continue
 
 
 
         elif parts[0]=="DENIED":
-            screen.popup(f"Friend {parts[1]} DENIED your request!")
+            gui.popup(f"Friend {parts[1]} DENIED your request!")
             continue
 
         elif reply == "REQUESTED":
-            screen.popup(f"Friend request sent!")
+            gui.popup(f"Friend request sent!")
             continue
 
         elif reply == "INVALID":
-            screen.popup("INVALIIIIID")
+            gui.popup("INVALIIIIID")
             continue
 
         else:
             text="??????????????"
 
-        screen.type(textbox,"Server> "+text+'\n')
+        gui.type(textbox,"Server> "+text+'\n')
         if is_down:
-            screen.down(textbox)
+            gui.down(textbox)
 
 def calling(id,lst):
-    root=screen.root("call","500x500",False)
-    textbox=screen.textbox(root)
+    root=gui.root("call","500x500",False)
+    textbox=gui.textbox(root)
     textbox.pack(side="top",fill="x")
-    screen.type(textbox,f"id: {id} \n")
-    screen.type(textbox,f"lst: {lst} \n")
+    gui.type(textbox,f"id: {id} \n")
+    gui.type(textbox,f"lst: {lst} \n")
     print(lst)
     s.send(f"CALL|{lst}|{id}".encode())
     root.mainloop()
@@ -308,7 +308,7 @@ def calling(id,lst):
     #
     #     if parts[0]=="VC_enter":
     #         text=parts[1]
-    #         screen.type(textbox,f"{text} \n")
+    #         gui.type(textbox,f"{text} \n")
     #         print("here")
 
 
