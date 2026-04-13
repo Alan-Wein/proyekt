@@ -45,6 +45,11 @@ def pressed(id,root,name,checkboxes):
         if cb.var.get()==1:
             # print(cb.var.get())
             lst.append(cb.hidden[0])
+    if len(lst)<3:
+        root.attributes('-topmost', True)
+        gui.popup("Not enough checkboxes have been pressed")
+        root.attributes('-topmost', True)
+        return
     s.send(f"GROUP|{lst}|{name}".encode())
     root.destroy()
 
@@ -55,12 +60,15 @@ def group(id):
 
     entrybox=gui.entrybox(root)
     entrybox.grid(column=0,row=1,columnspan=BOXES_PER_ROW)
-
-    checkboxes=[]
+    lst=[]
     for i in range(len(friends)):
+        if len(friends[i][1])<3:
+            lst.append(friends[i])
+    checkboxes=[]
+    for i in range(len(lst)):
         row = i // BOXES_PER_ROW
         col = i % BOXES_PER_ROW
-        checkbox=gui.checkbox(root,friends[i][0],friends[i][1])
+        checkbox=gui.checkbox(root,lst[i][0],lst[i][1])
         checkbox.grid(row=row+2, column=col, padx=10, pady=10)
         checkboxes.append(checkbox)
     buttonCreate = gui.button(root, "Create Group", lambda: pressed(id,root,entrybox.get(),checkboxes))
