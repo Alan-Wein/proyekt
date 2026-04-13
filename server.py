@@ -2,7 +2,7 @@ import socket
 import threading
 import json
 from collections import Counter
-from SQL import SQLiteHelper  # Assume our class is in sqlite_helper.py
+from SQL import SQLiteHelper
 
 # Initialize SQLiteHelper (thread-safe access)
 db = SQLiteHelper("users.db", check_same_thread=False)
