@@ -139,10 +139,12 @@ def create_user(email, name, password):
 
 
 def verify_user(email, name, password):
-    row = db.fetchone("SELECT id FROM users WHERE email = ?", (email,))
-    if not row: return None
-    row = db.fetchone("SELECT id FROM users WHERE name = ? AND password = ?", (name, password))
-    return row[0] if row else -1
+    id1 = db.fetchone("SELECT id FROM users WHERE email = ?", (email,))
+    if not id1: return None
+    id2 = db.fetchone("SELECT id FROM users WHERE name = ? AND password = ?", (name, password))
+    if not id2 or id1[0] != id2[0]: return -1
+    else:
+        return id1[0]
 
 
 def update_vc_participants(room_key):
