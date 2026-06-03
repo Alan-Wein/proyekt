@@ -492,7 +492,7 @@ def handle_client(client, addr, _):
 
             for r in empty_rooms:
                 del vc_rooms[r]
-                call_end_msg = f"System> Voice call ended [{timestamp}]"
+                call_end_msg = f"System> \U0001f6d1 Voice call ended [{timestamp}]"
                 current = db.fetchone("SELECT text FROM chats WHERE list = ?", (r,))
                 current_text = decrypt_text(current[0]) if current else ""
                 new_text = current_text + "\n" + call_end_msg
