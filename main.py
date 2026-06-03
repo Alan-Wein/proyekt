@@ -118,7 +118,6 @@ def upload_file(id, name):
     with open(filepath, "rb") as f:
         b64_data = base64.b64encode(f.read()).decode('utf-8')
 
-    # We no longer render locally. The server will sync it so it doesn't double-render!
     send_msg(s, f"FILE|{id}|{in_chat}|{filename}|{b64_data}")
 
 
@@ -263,7 +262,7 @@ def open_settings(id):
     gui.button(root, "Set Keybind", lambda: set_mute_keybind(entry_keybind.get())).pack(pady=5)
 
     gui.label(root, "Noise Suppression Threshold (dB / Amplitude):").pack()
-    scale = gui.scale(root, 0, 10000, "horizontal", lambda val: set_noise_threshold(val), noise_threshold)
+    scale = gui.scale(root, 0, 1000, "horizontal", lambda val: set_noise_threshold(val), noise_threshold)
     scale.pack()
 
     test_btn = gui.button(root, "Test Mic (Echo w/ Delay)", None)
