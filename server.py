@@ -434,8 +434,8 @@ def handle_client(client, addr, _):
 
             lst = json.loads(room_key)
 
+            timestamp = datetime.datetime.now().strftime("%H:%M")
             if is_new_call:
-                timestamp = datetime.datetime.now().strftime("%H:%M")
                 call_start_msg = f"System> \U0001f4de Voice call started by {caller_name} [{timestamp}]"
                 current = db.fetchone("SELECT text FROM chats WHERE list = ?", (room_key,))
                 current_text = decrypt_text(current[0]) if current else ""
@@ -451,7 +451,6 @@ def handle_client(client, addr, _):
                             time.sleep(0.05)
                             send_msg(online[uid][0], f"CALLING|{room_key}|{caller_id}|{caller_name}")
             else:
-                timestamp = datetime.datetime.now().strftime("%H:%M")
                 for uid in vc_rooms[room_key]:
                     if uid != caller_id and uid in online:
                         send_msg(online[uid][0], f"VC_enter|{caller_name} joined the call. [{timestamp}]")
@@ -493,7 +492,7 @@ def handle_client(client, addr, _):
 
             for r in empty_rooms:
                 del vc_rooms[r]
-                call_end_msg = f"System> \U0001f6d1 Voice call ended [{timestamp}]"
+                call_end_msg = f"System> Voice call ended [{timestamp}]"
                 current = db.fetchone("SELECT text FROM chats WHERE list = ?", (r,))
                 current_text = decrypt_text(current[0]) if current else ""
                 new_text = current_text + "\n" + call_end_msg
@@ -517,7 +516,7 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(("0.0.0.0", 9999))
 server.listen()
 
-print("Server running on TCP 9999 / UDP 9998...")
+print("Server running...")
 while True:
     client, addr = server.accept()
     print(f"{addr} Connected")
