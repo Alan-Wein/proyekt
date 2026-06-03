@@ -57,7 +57,7 @@ class SQLiteHelper:
     def execute(self, sql, params=None, fetchone=False, fetchall=False, fetchmany=None, commit=True):
         """
         Execute a SQL statement with optional parameters and fetch mode.
-        - Sql (str): the SQL query or command.
+        - SQL (str): the SQL query or command.
         - params (tuple or dict): parameters for placeholders.
         - fetchone/fetchall (bool): if True, return one/all rows.
         - fetchmany (int): if not None, fetch up to this many rows.
