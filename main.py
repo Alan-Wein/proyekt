@@ -31,10 +31,13 @@ def recv_msg(sock):
 
 
 # -----------------------------
+SERVER_IP="127.0.0.1"
+
 
 in_chat = None
 s = socket.socket()
-s.connect(("127.0.0.1", 9999))
+s.connect((SERVER_IP, 9999))
+
 f_btns = []
 friends = []
 gui = GUI.GUI()
@@ -337,7 +340,8 @@ def mic_test_thread():
             if len(delay_buffer) > 21:
                 play_data = delay_buffer.pop(0)
                 stream_out.write(play_data)
-        except:
+        except Exception as e:
+            print(f"An error occurred: {e}")
             break
 
     stream_in.stop_stream()
@@ -438,7 +442,7 @@ def join_call(id, room_key, is_initiator=False):
 
     vc_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     vc_socket.bind(("0.0.0.0", 0))
-    vc_socket.sendto(f"REG|{id}".encode(), ("127.0.0.1", 9998))
+    vc_socket.sendto(f"REG|{id}".encode(), (SERVER_IP, 9998))
 
     vc_root_window = gui.toplevel("Voice Chat", "300x400")
 
@@ -469,7 +473,7 @@ def join_call(id, room_key, is_initiator=False):
                 data = input_stream.read(CHUNK, exception_on_overflow=False)
                 rms = get_rms(data)
                 if not is_muted and vc_socket and rms >= noise_threshold:
-                    vc_socket.sendto(data, ("127.0.0.1", 9998))
+                    vc_socket.sendto(data, (SERVER_IP, 9998))
             except:
                 break
 
